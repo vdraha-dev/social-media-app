@@ -1,0 +1,73 @@
+import uuid
+from datetime import datetime
+
+from sqlalchemy import DateTime, func
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from app.shared.config import settings
+
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.DEBUG,
+    pool_size=settings.DB_POOL_SIZ,
+    max_overflow=settings.DB_MAX_OVERFLOW,
+    pool_pre_ping=True,
+)
+
+AsyncSessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+
+class Base(DeclarativeBase):
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+async def get_session():
+    async with AsyncSessionLocal() as session:
+        yield session
+
+
+class UnitOfWork:
+    def __init__(self):
+        self.session: AsyncSession | None = None
+
+    async def __aenter__(self) -> UnitOfWork:
+        self.session = AsyncSessionLocal()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            await self.rollback()
+        else:
+            await self.commit()
+        await self.session.close()
+
+    async def commit(self):
+        await self.session.commit()
+
+    async def rollback(self):
+        await self.session.rollback()
