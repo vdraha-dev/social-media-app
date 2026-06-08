@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import field
 from datetime import datetime
 from uuid import uuid4
 
@@ -7,7 +7,6 @@ from pytz import UTC
 from app.shared.domain.value_objects import Id
 
 
-@dataclass(slots=True)
 class BaseEntity:
     id: Id = field(default_factory=lambda: Id(uuid4()))
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
