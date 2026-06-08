@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.identity.application.dto import (
     LoginRequest,
@@ -6,6 +6,8 @@ from app.identity.application.dto import (
     TokenResponse,
     UserResponse,
 )
+from app.identity.domain.entities import User
+from app.identity.presentation.dependencies import get_current_user
 
 auth = APIRouter(prefix="auth")
 
@@ -16,3 +18,7 @@ async def register(request: RegisterUserRequest): ...
 
 @auth.post("/login", response_model=TokenResponse, status_code=200)
 async def login(request: LoginRequest): ...
+
+
+@auth.post("/logout", status_code=204)
+async def login(current_use: User = Depends(get_current_user)): ...
