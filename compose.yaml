@@ -1,0 +1,9 @@
+services:
+  app:
+    build: .
+    ports:
+      - target: 8080
+        published: 5001 
+    # environment:
+    volumes:
+      - ./data:/app/data
