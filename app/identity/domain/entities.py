@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from uuid import UUID
 
 from pytz import UTC
 
@@ -28,3 +29,19 @@ class User(BaseEntity):
     def change_password(self, new_password: HashedPassword):
         self.password = new_password
         self._touch()
+
+
+@dataclass(slots=True)
+class AccessToken(BaseEntity):
+    token: str
+    user_id: UUID
+    expired_at: datetime
+    blacklisted: bool = False
+
+    def blacklist(self):
+        self.blacklisted = True
+        self._touch()
+
+    @property
+    def is_valid(self) -> bool:
+        return not self.blacklisted and self.expired_at > datetime.now(UTC)
