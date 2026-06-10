@@ -23,7 +23,7 @@ class UserModel(Base):
 
     # relationships
 
-    tokens: Mapped[list[AccessToken]] = relationship(
+    tokens: Mapped[list[AccessTokenModel]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 
