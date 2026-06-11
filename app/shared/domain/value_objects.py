@@ -1,6 +1,5 @@
 import re
 from dataclasses import dataclass
-from uuid import UUID
 
 from app.shared.domain.base_value_object import BaseValueObject
 
@@ -23,17 +22,6 @@ class Email(BaseValueObject):
     @property
     def domain(self) -> str:
         return self.value.split("@")[1]
-
-
-@dataclass(frozen=True, slots=True)
-class Id(BaseValueObject):
-    value: UUID
-
-    def __str__(self) -> str:
-        return str(self.value)
-
-    def __repr__(self):
-        return f"Id(value={self.value!r}"
 
 
 @dataclass(frozen=True, slots=True)
