@@ -3,10 +3,10 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.identity.domain.entities import User
-from app.identity.domain.service import IUserRepository
+from app.identity.domain.entities import AccessToken, User
+from app.identity.domain.service import IAccessTokenRepository, IUserRepository
 from app.identity.domain.value_objects import HashedPassword, Role
-from app.identity.infrastructure.models import UserModel
+from app.identity.infrastructure.models import AccessTokenModel, UserModel
 from app.shared.domain.value_objects import Email
 
 
@@ -65,4 +65,41 @@ class UserRepository(IUserRepository):
             last_login=e.last_login,
             created_at=e.created_at,
             updated_at=e.updated_at,
+        )
+
+
+class AccessTokenRepository(IAccessTokenRepository):
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def get_by_token(self, token: str) -> AccessToken | None:
+        stmt = select(AccessTokenModel).where(AccessTokenModel.token == token)
+        result = await self.session.execute(stmt)
+        access_token = result.scalar_one_or_none()
+        return self._to_entity(access_token) if access_token else None
+
+    async def save(self, access_token: AccessToken):
+        self.session.add(self._to_model(access_token))
+        await self.session.flush()
+
+    def _to_model(self, e: AccessToken) -> AccessTokenModel:
+        return AccessTokenModel(
+            id=e.id,
+            created_at=e.created_at,
+            updated_at=e.updated_at,
+            token=e.token,
+            user_id=e.user_id,
+            expired_at=e.expired_at,
+            blacklisted=e.blacklisted,
+        )
+
+    def _to_entity(self, m: AccessTokenModel) -> AccessToken:
+        return AccessToken(
+            id=m.id,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
+            token=m.token,
+            user_id=m.user_id,
+            expired_at=m.expired_at,
+            blacklisted=m.blacklisted,
         )
