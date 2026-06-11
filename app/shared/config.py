@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production"
     ACCESS_TOKEN_TTL_HOURS: int = 24
 
+    HASH_ALGORITHMS = ["argon2"]
+
     DEBUG: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
