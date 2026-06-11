@@ -42,3 +42,6 @@ class EventBus:
         except Exception:
             ...
             # TODO: logging
+
+
+event_bus = EventBus()
