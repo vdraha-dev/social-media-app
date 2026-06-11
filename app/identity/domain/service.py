@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from app.identity.domain.entities import AccessToken, User
+from app.identity.domain.value_objects import HashedPassword
 
 
 class IUserRepository(ABC):
