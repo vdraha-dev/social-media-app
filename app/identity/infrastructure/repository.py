@@ -15,7 +15,7 @@ class UserRepository(IUserRepository):
         self.session = session
 
     async def get_user_by_id(self, user_id: UUID) -> User | None:
-        user = self.session.get(UserModel, user_id)
+        user = await self.session.get(UserModel, user_id)
         return self._to_entity(user) if user else None
 
     async def get_by_email(self, email: str) -> User | None:
@@ -25,7 +25,7 @@ class UserRepository(IUserRepository):
         return self._to_entity(user) if user else None
 
     async def save(self, user: User):
-        user_m = self.session.get(UserModel, user.id)
+        user_m = await self.session.get(UserModel, user.id)
         if user_m:
             user_m.username = user.username
             user_m.email = user.email
