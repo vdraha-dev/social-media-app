@@ -26,6 +26,9 @@ class IAccessTokenRepository(ABC):
     @abstractmethod
     async def save(self, access_token: AccessToken): ...
 
+    @abstractmethod
+    async def blacklist_all_for_user(self, user_id: UUID): ...
+
 
 class IPasswordHasher(ABC):
     @abstractmethod
