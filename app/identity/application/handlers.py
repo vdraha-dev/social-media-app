@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from app.identity.application.dto import (
     LoginRequest,
     RegisterUserRequest,
@@ -6,7 +8,7 @@ from app.identity.application.dto import (
 )
 from app.identity.domain.entities import User
 from app.identity.domain.errors import InvalidCredentialsError, UserAlreadyExistsError
-from app.identity.domain.events import UserLogedIn, UserRegistered
+from app.identity.domain.events import UserLogedIn, UserLoggedOut, UserRegistered
 from app.identity.domain.service import (
     IAccessTokenRepository,
     IPasswordHasher,
@@ -72,6 +74,13 @@ class LoginHandler:
 
         await event_bus.publish(UserLogedIn(user_id=user.id))
 
-        return TokenResponse(
-            access_token=token.access_token, token_type="Bearer"
-        )
+        return TokenResponse(access_token=token.access_token, token_type="Bearer")
+
+
+class LogoutHandler:
+    def __init__(self, token_repo: IAccessTokenRepository):
+        self.token_repo = token_repo
+
+    async def handle(self, user_id: UUID):
+        await self.token_repo.blacklist_all_for_user(user_id)
+        await event_bus.publish(UserLoggedOut(user_id=user_id))
