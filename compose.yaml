@@ -8,20 +8,33 @@ services:
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
 
     depends_on:
-      - postgres
+      migrations:
+        condition: service_completed_successfully
 
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/appdb
       SYNC_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/appdb
 
     volumes:
-      - ./alembic:/app/alembic
+      - .:/app
+      - venv_data:/app/.venv
 
   migrations:
     build: .
+
     command: ["alembic", "upgrade", "head"]
+
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/appdb
+      SYNC_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/appdb
+
+    volumes:
+      - .:/app
+      - venv_data:/app/.venv
+
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   postgres:
     image: postgres:16-alpine
@@ -38,5 +51,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d appdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   postgres_data:
+  venv_data:
