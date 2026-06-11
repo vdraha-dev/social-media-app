@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime, create_engine, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -19,6 +19,26 @@ engine = create_async_engine(
     max_overflow=settings.DB_MAX_OVERFLOW,
     pool_pre_ping=True,
 )
+
+
+def init_db():
+    db_url = str(settings.DATABASE_URL)
+
+    admin_url = db_url.rsplit("/", 1)[0] + "/postgres"
+
+    admin_engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
+
+    db_name = db_url.rsplit("/", 1)[1]
+
+    with admin_engine.connect() as conn:
+        exists = conn.execute(
+            text("SELECT 1 FROM pg_database WHERE datname = :name"),
+            {"name": db_name},
+        ).scalar_one_or_none()
+
+        if not exists:
+            conn.execute(text(f"CREATE DATABASE {db_name}"))
+
 
 AsyncSessionLocal = async_sessionmaker(
     engine,
