@@ -22,7 +22,7 @@ engine = create_async_engine(
 
 
 def init_db():
-    db_url = str(settings.DATABASE_URL)
+    db_url = str(settings.SYNC_DATABASE_URL)
 
     admin_url = db_url.rsplit("/", 1)[0] + "/postgres"
 
