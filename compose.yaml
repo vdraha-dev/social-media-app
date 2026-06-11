@@ -3,7 +3,28 @@ services:
     build: .
     ports:
       - target: 8080
-        published: 5001 
-    # environment:
+        published: 5001
+
+    depends_on:
+      - postgres
+
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/appdb
+
+  postgres:
+    image: postgres:16-alpine
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: appdb
+
+    ports:
+      - target: 5432
+        published: 5433
+
     volumes:
-      - ./data:/app/data
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

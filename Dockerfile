@@ -8,8 +8,6 @@ COPY pyproject.toml uv.lock ./
 
 RUN uv sync
 
-RUN ls -la /app/.venv/bin/
-
 COPY . .
 
 ENV PATH="/app/.venv/bin:$PATH"
