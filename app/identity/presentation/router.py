@@ -6,7 +6,11 @@ from app.identity.application.dto import (
     TokenResponse,
     UserResponse,
 )
-from app.identity.application.handlers import LoginHandler, LogoutHandler, RegisterUserhandler
+from app.identity.application.handlers import (
+    LoginHandler,
+    LogoutHandler,
+    RegisterUserhandler,
+)
 from app.identity.domain.entities import User
 from app.identity.infrastructure.repository import AccessTokenRepository, UserRepository
 from app.identity.infrastructure.security import PasswordHasher, TokenService
@@ -17,17 +21,17 @@ auth = APIRouter(prefix="/auth")
 
 
 async def register_handler(session=Depends(get_session)):
-    return RegisterUserhandler(UserRepository(session), PasswordHasher(session))
+    return RegisterUserhandler(UserRepository(session), PasswordHasher())
 
 
 async def login_handler(session=Depends(get_session)):
     return LoginHandler(
         UserRepository(session),
         AccessTokenRepository(session),
-        PasswordHasher(session),
-        TokenService(session),
+        PasswordHasher(),
+        TokenService(),
     )
-    
+
 
 async def logout_handler(session=Depends(get_session)):
     return LogoutHandler(AccessTokenRepository(session))
@@ -44,7 +48,9 @@ async def login(request: LoginRequest, handler=Depends(login_handler)):
 
 
 @auth.post("/logout", status_code=204)
-async def logout(current_user: User = Depends(get_current_user), handler=Depends(logout_handler)):
+async def logout(
+    current_user: User = Depends(get_current_user), handler=Depends(logout_handler)
+):
     return await handler.handle(current_user.id)
 
 
