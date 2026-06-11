@@ -1,7 +1,7 @@
 import asyncio
 from collections import defaultdict
 from collections.abc import Awaitable
-from dataclasses import dataclass, field
+from dataclasses import field
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID, uuid4
