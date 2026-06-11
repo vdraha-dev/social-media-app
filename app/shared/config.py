@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 20
 
     SECRET_KEY: str = "change-me-in-production"
+    ALGORITHM: str = "HS256"
     ACCESS_TOKEN_TTL_HOURS: int = 24
 
     HASH_ALGORITHMS = ["argon2"]
