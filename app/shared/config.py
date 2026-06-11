@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_TTL_HOURS: int = 24
 
-    HASH_ALGORITHMS = ["argon2"]
+    HASH_ALGORITHMS: list[str] = ["argon2"]
 
     DEBUG: bool = False
 
