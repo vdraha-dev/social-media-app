@@ -1,9 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
-from click import DateTime
-from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy import Boolean, ForeignKey, String, DateTime
 from sqlalchemy import Enum as SqlEnum
+from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.identity.domain.value_objects import RoleEnum
@@ -32,7 +32,7 @@ class AccessTokenModel(Base):
     __tablename__ = "access_tokens"
 
     token: Mapped[str] = mapped_column(String(512), nullable=False, unique=True)
-    user_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    user_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), ForeignKey("users.id"))
     expire_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     blacklisted: Mapped[bool] = mapped_column(Boolean)
 
