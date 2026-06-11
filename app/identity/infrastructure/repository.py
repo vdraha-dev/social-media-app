@@ -1,6 +1,6 @@
-import select
 from uuid import UUID
 
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.identity.domain.entities import AccessToken, User
@@ -81,6 +81,15 @@ class AccessTokenRepository(IAccessTokenRepository):
     async def save(self, access_token: AccessToken):
         self.session.add(self._to_model(access_token))
         await self.session.flush()
+
+    async def blacklist_all_for_user(self, user_id: UUID):
+        stmt = (
+            update(AccessTokenModel)
+            .where(AccessTokenModel.user_id == user_id)
+            .values(blacklisted=True)
+        )
+
+        await self.session.execute(stmt)
 
     def _to_model(self, e: AccessToken) -> AccessTokenModel:
         return AccessTokenModel(
