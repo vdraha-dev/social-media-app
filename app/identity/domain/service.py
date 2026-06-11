@@ -24,3 +24,10 @@ class IAccessTokenRepository(ABC):
 
     @abstractmethod
     async def save(self, access_token: AccessToken): ...
+
+
+class IPasswordHasher(ABC):
+    @abstractmethod
+    def hash(self, raw: str) -> HashedPassword: ...
+    @abstractmethod
+    def verify(self, raw: str, hashed: HashedPassword) -> bool: ...
