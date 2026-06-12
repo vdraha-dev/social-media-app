@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.identity.application.dto import (
     LoginRequest,
@@ -14,10 +15,11 @@ from app.identity.application.handlers import (
 )
 from app.identity.infrastructure.repository import AccessTokenRepository, UserRepository
 from app.identity.infrastructure.security import PasswordHasher, TokenService
-from app.identity.presentation.dependencies import get_current_user_token
 from app.shared.infrastructure.database import get_uow
 
 auth = APIRouter(prefix="/auth")
+
+bearer_scheme = HTTPBearer()
 
 
 async def register_handler(uow=Depends(get_uow)):
@@ -57,20 +59,20 @@ async def login(request: LoginRequest, handler=Depends(login_handler)):
 
 @auth.post("/logout", status_code=204)
 async def logout(
-    token: str = Depends(get_current_user_token),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     verify_handler=Depends(verify_user_handler),
     logout_handler=Depends(logout_handler),
 ):
-    user = await verify_handler.handle(token)
+    user = await verify_handler.handle(credentials.credentials)
     return await logout_handler.handle(user.id)
 
 
 @auth.get("/me", response_model=UserResponse, status_code=200)
 async def get_me(
-    token: str = Depends(get_current_user_token),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     verify_handler=Depends(verify_user_handler),
 ):
-    user = await verify_handler.handle(token)
+    user = await verify_handler.handle(credentials.credentials)
     return UserResponse(
         id=user.id,
         username=user.username,
