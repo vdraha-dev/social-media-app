@@ -10,11 +10,11 @@ from app.identity.application.handlers import (
     LoginHandler,
     LogoutHandler,
     RegisterUserhandler,
+    VerifyUserByTokenHandler,
 )
-from app.identity.domain.entities import User
 from app.identity.infrastructure.repository import AccessTokenRepository, UserRepository
 from app.identity.infrastructure.security import PasswordHasher, TokenService
-from app.identity.presentation.dependencies import get_current_user
+from app.identity.presentation.dependencies import get_current_user_token
 from app.shared.infrastructure.database import get_uow
 
 auth = APIRouter(prefix="/auth")
@@ -37,6 +37,14 @@ async def logout_handler(uow=Depends(get_uow)):
     return LogoutHandler(AccessTokenRepository(uow.session))
 
 
+async def verify_user_handler(uow=Depends(get_uow)):
+    return VerifyUserByTokenHandler(
+        UserRepository(uow.session),
+        AccessTokenRepository(uow.session),
+        TokenService(),
+    )
+
+
 @auth.post("/register", response_model=UserResponse, status_code=201)
 async def register(request: RegisterUserRequest, handler=Depends(register_handler)):
     return await handler.handle(request)
@@ -49,16 +57,23 @@ async def login(request: LoginRequest, handler=Depends(login_handler)):
 
 @auth.post("/logout", status_code=204)
 async def logout(
-    current_user: User = Depends(get_current_user), handler=Depends(logout_handler)
+    token: str = Depends(get_current_user_token),
+    verify_handler=Depends(verify_user_handler),
+    logout_handler=Depends(logout_handler),
 ):
-    return await handler.handle(current_user.id)
+    user = await verify_handler.handle(token)
+    return await logout_handler.handle(user.id)
 
 
 @auth.get("/me", response_model=UserResponse, status_code=200)
-async def get_me(current_user: User = Depends(get_current_user)):
+async def get_me(
+    token: str = Depends(get_current_user_token),
+    verify_handler=Depends(verify_user_handler),
+):
+    user = await verify_handler.handle(token)
     return UserResponse(
-        id=current_user.id,
-        username=current_user.username,
-        email=current_user.email,
-        role=current_user.role,
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        role=user.role,
     )
