@@ -61,7 +61,7 @@ class LoginHandler:
     async def handle(self, request: LoginRequest):
         user = await self.user_repo.get_by_email(request.email)
 
-        if not user or self.hasher.verify(user.password, request.password):
+        if not user or not self.hasher.verify(request.password, user.password):
             raise InvalidCredentialsError(
                 "Invalid credentials. Wrong email or password."
             )
@@ -69,12 +69,12 @@ class LoginHandler:
         user.record_login()
         await self.user_repo.save(user)
 
-        token = self.token_service.generate(user.id, user.role)
+        token = self.token_service.generate(user.id, user.role.value)
         await self.token_repo.save(token)
 
         await event_bus.publish(UserLogedIn(user_id=user.id))
 
-        return TokenResponse(access_token=token.access_token, token_type="Bearer")
+        return TokenResponse(access_token=token.token, token_type="Bearer")
 
 
 class LogoutHandler:
