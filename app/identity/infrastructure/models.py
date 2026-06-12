@@ -33,7 +33,9 @@ class AccessTokenModel(Base):
 
     token: Mapped[str] = mapped_column(String(512), nullable=False, unique=True)
     user_id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), ForeignKey("users.id"))
-    expire_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expired_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     blacklisted: Mapped[bool] = mapped_column(Boolean)
 
     # relationships
