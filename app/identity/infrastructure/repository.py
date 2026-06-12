@@ -28,8 +28,8 @@ class UserRepository(IUserRepository):
         user_m = await self.session.get(UserModel, user.id)
         if user_m:
             user_m.username = user.username
-            user_m.email = user.email
-            user_m.password_hash = user.password
+            user_m.email = str(user.email)
+            user_m.password_hash = user.password.value
             user_m.role = user.role.value
             user_m.last_login = user.last_login
             user_m.updated_at = user.updated_at
@@ -44,16 +44,22 @@ class UserRepository(IUserRepository):
         return user is not None
 
     def _to_entity(self, m: UserModel) -> User:
-        return User(
-            id=m.id,
+        e = User(
+            # id=m.id,
             username=m.username,
             email=Email(m.email),
             password=HashedPassword(m.password_hash),
             role=Role(m.role),
             last_login=m.last_login,
-            created_at=m.created_at,
-            updated_at=m.updated_at,
+            # created_at=m.created_at,
+            # updated_at=m.updated_at,
         )
+
+        e.id = m.id
+        e.created_at = m.created_at
+        e.updated_at = m.updated_at
+
+        return e
 
     def _to_model(self, e: User) -> UserModel:
         return UserModel(
