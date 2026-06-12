@@ -19,7 +19,7 @@ class EventHandler(Protocol):
 
 
 class EventBus:
-    def __int__(self):
+    def __init__(self):
         self._handlers: dict[type[DomainEvent], list[EventHandler]] = defaultdict(list)
 
     def subscribe(self, event_type: type[DomainEvent], handler: EventHandler) -> None:

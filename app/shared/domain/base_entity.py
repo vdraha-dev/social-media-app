@@ -1,16 +1,15 @@
-from dataclasses import field
+from dataclasses import dataclass, field
 from datetime import datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from pytz import UTC
 
-from app.shared.domain.value_objects import Id
 
-
+@dataclass(slots=True)
 class BaseEntity:
-    id: Id = field(default_factory=lambda: Id(uuid4()))
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    id: UUID = field(default_factory=uuid4, init=False)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC), init=False)
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC), init=False)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, self.__class__):

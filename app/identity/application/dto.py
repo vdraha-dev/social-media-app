@@ -20,6 +20,7 @@ class RegisterUserRequest(BaseModel):
     def username_validator(cls, v):
         if len(v) < 3:
             raise ValueError("Username must be at least 3 characters long")
+        return v
 
 
 class UserResponse(BaseModel):
