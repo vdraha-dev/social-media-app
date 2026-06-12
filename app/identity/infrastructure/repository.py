@@ -7,7 +7,6 @@ from app.identity.domain.entities import AccessToken, User
 from app.identity.domain.service import IAccessTokenRepository, IUserRepository
 from app.identity.domain.value_objects import HashedPassword, Role
 from app.identity.infrastructure.models import AccessTokenModel, UserModel
-from app.shared.domain.value_objects import Email
 
 
 class UserRepository(IUserRepository):
@@ -47,7 +46,7 @@ class UserRepository(IUserRepository):
         e = User(
             # id=m.id,
             username=m.username,
-            email=Email(m.email),
+            email=m.email,
             password=HashedPassword(m.password_hash),
             role=Role(m.role),
             last_login=m.last_login,
@@ -109,12 +108,17 @@ class AccessTokenRepository(IAccessTokenRepository):
         )
 
     def _to_entity(self, m: AccessTokenModel) -> AccessToken:
-        return AccessToken(
-            id=m.id,
-            created_at=m.created_at,
-            updated_at=m.updated_at,
+        token = AccessToken(
+            # id=m.id,
+            # created_at=m.created_at,
+            # updated_at=m.updated_at,
             token=m.token,
             user_id=m.user_id,
             expired_at=m.expired_at,
             blacklisted=m.blacklisted,
         )
+        token.id = m.id
+        token.created_at = m.created_at
+        token.updated_at = m.updated_at
+
+        return token

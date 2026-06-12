@@ -13,6 +13,7 @@ from app.identity.application.handlers import (
     RegisterUserhandler,
     VerifyUserByTokenHandler,
 )
+from app.identity.domain.entities import User
 from app.identity.infrastructure.repository import AccessTokenRepository, UserRepository
 from app.identity.infrastructure.security import PasswordHasher, TokenService
 from app.shared.infrastructure.database import get_uow
@@ -64,7 +65,7 @@ async def logout(
     logout_handler=Depends(logout_handler),
 ):
     user = await verify_handler.handle(credentials.credentials)
-    return await logout_handler.handle(user.id)
+    await logout_handler.handle(user.id)
 
 
 @auth.get("/me", response_model=UserResponse, status_code=200)
@@ -72,10 +73,10 @@ async def get_me(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     verify_handler=Depends(verify_user_handler),
 ):
-    user = await verify_handler.handle(credentials.credentials)
+    user: User = await verify_handler.handle(credentials.credentials)
     return UserResponse(
         id=user.id,
         username=user.username,
         email=user.email,
-        role=user.role,
+        role=user.role.value,
     )
