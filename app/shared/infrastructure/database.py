@@ -72,11 +72,10 @@ async def get_session():
 
 
 class UnitOfWork:
-    def __init__(self):
-        self.session: AsyncSession | None = None
+    def __init__(self, session: AsyncSession):
+        self.session = session
 
     async def __aenter__(self) -> UnitOfWork:
-        self.session = AsyncSessionLocal()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -91,3 +90,9 @@ class UnitOfWork:
 
     async def rollback(self):
         await self.session.rollback()
+
+
+async def get_uow():
+    async with AsyncSessionLocal() as session:
+        async with UnitOfWork(session) as uow:
+            yield uow
