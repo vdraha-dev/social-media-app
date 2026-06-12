@@ -87,3 +87,29 @@ class LogoutHandler:
     async def handle(self, user_id: UUID):
         await self.token_repo.blacklist_all_for_user(user_id)
         await event_bus.publish(UserLoggedOut(user_id=user_id))
+
+
+class VerifyUserByTokenHandler:
+    def __init__(
+        self,
+        user_repo: IUserRepository,
+        token_repo: IAccessTokenRepository,
+        token_service: ITokenService,
+    ):
+        self.user_repo = user_repo
+        self.token_repo = token_repo
+        self.token_service = token_service
+
+    async def handle(self, token_str: str) -> User:
+        payload = self.token_service.decode(token_str)
+
+        token = await self.token_repo.get_by_token(token_str)
+        if not token or token.blacklisted:
+            raise InvalidCredentialsError("Token is blacklisted")
+
+        user = await self.user_repo.get_user_by_id(UUID(payload["user_id"]))
+
+        if not user:
+            raise InvalidCredentialsError("Invalid credentials")
+
+        return user
