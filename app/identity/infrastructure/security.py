@@ -6,7 +6,7 @@ from passlib.context import CryptContext
 from pytz import UTC
 
 from app.identity.domain.entities import AccessToken
-from app.identity.domain.errors import InvalidTokenError, TokenExpiredError
+from app.identity.domain.exceptions import InvalidTokenError, TokenExpiredError
 from app.identity.domain.service import IPasswordHasher, ITokenService
 from app.identity.domain.value_objects import HashedPassword
 from app.shared.config import settings

@@ -7,8 +7,11 @@ from app.identity.application.dto import (
     UserResponse,
 )
 from app.identity.domain.entities import User
-from app.identity.domain.errors import InvalidCredentialsError, UserAlreadyExistsError
 from app.identity.domain.events import UserLogedIn, UserLoggedOut, UserRegistered
+from app.identity.domain.exceptions import (
+    InvalidCredentialsError,
+    UserAlreadyExistsError,
+)
 from app.identity.domain.service import (
     IAccessTokenRepository,
     IPasswordHasher,

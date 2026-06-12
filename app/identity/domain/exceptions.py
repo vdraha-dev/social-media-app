@@ -1,0 +1,13 @@
+from app.shared.domain.exceptions import DomainError
+
+
+class TokenExpiredError(DomainError): ...
+
+
+class InvalidTokenError(DomainError): ...
+
+
+class UserAlreadyExistsError(DomainError): ...
+
+
+class InvalidCredentialsError(DomainError): ...
