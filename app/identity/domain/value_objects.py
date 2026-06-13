@@ -11,10 +11,16 @@ class HashedPassword:
         if not self.value:
             raise ValueError("Invalid password. Password cannot be empty.")
 
+    def __str__(self):
+        return self.value
+
 
 @dataclass(frozen=True, slots=True)
 class UserName:
     value: str
+
+    def __str__(self):
+        return self.value
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +32,9 @@ class Email:
             r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", self.value
         ):
             raise ValueError(f"Invalid email address: {self.value!r}")
+
+    def __str__(self):
+        return self.value
 
 
 class RoleEnum(StrEnum):
@@ -44,3 +53,6 @@ class Role:
     @property
     def is_admin(self) -> bool:
         return self.value == RoleEnum.Admin
+
+    def __str__(self):
+        return str(self.value)
