@@ -57,7 +57,7 @@ class Pagination(BaseValueObject):
 
     @property
     def offset(self) -> int:
-        return (self.page - 1) * self.page_size
+        return (self.page_number - 1) * self.page_size
 
     @property
     def limit(self) -> int:
