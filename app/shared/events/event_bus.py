@@ -37,7 +37,7 @@ class EventBus:
 
     async def _save_handle(self, handler: EventHandler, event: DomainEvent) -> None:
         try:
-            handler(event)
+            await handler(event)
         except Exception:
             ...
             # TODO: logging
