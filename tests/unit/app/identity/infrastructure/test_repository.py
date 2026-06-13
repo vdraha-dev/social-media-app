@@ -12,10 +12,6 @@ from app.identity.infrastructure.repository import (
 
 class TestUserRepository:
     @pytest.fixture
-    def session(self):
-        return AsyncMock()
-
-    @pytest.fixture
     def repo(self, session):
         return UserRepository(session)
 
@@ -129,10 +125,6 @@ class TestUserRepository:
 
 
 class TestAccessTokenRepository:
-    @pytest.fixture
-    def session(self):
-        return AsyncMock()
-
     @pytest.fixture
     def repo(self, session):
         return AccessTokenRepository(session)

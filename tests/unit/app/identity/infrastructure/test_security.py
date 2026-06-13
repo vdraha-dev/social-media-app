@@ -58,10 +58,10 @@ class TestTokenServiceGenerate:
         parts = token.token.split(".")
         assert len(parts) == 3
 
-    def test_generated_token_is_decodeable(self):
+    def test_generated_token_is_decodeable(self, secret_key):
         with patch("app.identity.infrastructure.security.settings") as mock_settings:
             mock_settings.HASH_ALGORITHMS = ["argon2"]
-            mock_settings.SECRET_KEY = "change-me-in-production"
+            mock_settings.SECRET_KEY = secret_key
             mock_settings.ALGORITHM = "HS256"
             mock_settings.ACCESS_TOKEN_TTL_HOURS = 24
             service = TokenService()
@@ -71,7 +71,7 @@ class TestTokenServiceGenerate:
 
         payload = jwt.decode(
             token.token,
-            "change-me-in-production",
+            secret_key,
             algorithms=["HS256"],
         )
         assert payload["user_id"] == str(user_id)
@@ -88,14 +88,14 @@ class TestTokenServiceDecode:
         assert payload["user_id"] == str(user_id)
         assert payload["role"] == "admin"
 
-    def test_decode_expired_token_raises(self):
+    def test_decode_expired_token_raises(self, secret_key):
         service = TokenService()
         with patch("app.identity.infrastructure.security.settings") as mock_settings:
-            mock_settings.SECRET_KEY = "test-secret"
+            mock_settings.SECRET_KEY = secret_key
             mock_settings.ALGORITHM = "HS256"
             expired_token = jwt.encode(
                 {"exp": datetime(2020, 1, 1, tzinfo=UTC)},
-                "test-secret",
+                secret_key,
                 algorithm="HS256",
             )
             with pytest.raises(TokenExpiredError):
@@ -111,11 +111,11 @@ class TestTokenServiceDecode:
         with pytest.raises(InvalidTokenError):
             service.decode("")
 
-    def test_decode_token_with_wrong_secret_raises(self):
+    def test_decode_token_with_wrong_secret_raises(self, secret_key):
         service = TokenService()
         token = jwt.encode(
             {"user_id": str(uuid4())},
-            "wrong-secret",
+            secret_key,
             algorithm="HS256",
         )
         with pytest.raises(InvalidTokenError):
