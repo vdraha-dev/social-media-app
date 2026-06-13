@@ -48,6 +48,16 @@ services:
       "--reload"
     ]
 
+  
+  app-test:
+    <<: *app-base
+    depends_on: {}
+    build:
+      args:
+        UV_GROUPS: "--group test"
+
+    command: ["pytest", "./tests"]
+
 
   migrations:
     <<: *app-base
