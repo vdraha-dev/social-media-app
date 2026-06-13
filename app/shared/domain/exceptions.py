@@ -7,7 +7,7 @@ class NotFoundError(DomainError):
     """
 
     def __init__(self, entity: str, identifier: object):
-        super.__init__(f"{entity} not found with identifier {identifier}")
+        super().__init__(f"{entity} not found with identifier {identifier}")
         self.entity = entity
         self.identifier = identifier
 
@@ -18,7 +18,7 @@ class AlreadyExistsError(DomainError):
     """
 
     def __init__(self, entity: str, field: str, value: object):
-        super.__init__(f"{entity} with {field}={value!r} already exists")
+        super().__init__(f"{entity} with {field}={value!r} already exists")
         self.entity = entity
         self.field = field
         self.value = value
