@@ -1,3 +1,20 @@
+x-app-base: &app-base
+  build:
+    context: .
+  ports:
+    - target: 8080
+      published: "${APP_PORT}"
+  depends_on:
+    migrations:
+      condition: service_completed_successfully
+  environment:
+    DATABASE_URL: "${DATABASE_URL}"
+    SYNC_DATABASE_URL: "${SYNC_DATABASE_URL}"
+  volumes:
+    - .:/app
+    - /app/.venv
+
+
 services:
   app:
     build: .
