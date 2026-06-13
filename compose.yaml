@@ -23,17 +23,34 @@ services:
         UV_GROUPS: ""
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
 
-    depends_on:
-      migrations:
-        condition: service_completed_successfully
 
-    environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/appdb
-      SYNC_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/appdb
+  app-debug:
+    <<: *app-base
+    build:
+      args:
+        UV_GROUPS: "--group debug"
+    ports:
+      #  Debug port
+      - target: 5678
+        published: "${DEBUG_PORT}"
 
-    volumes:
-      - .:/app
-      - venv_data:/app/.venv
+    command: [
+      "python",
+      "-Xfrozen_modules=off",
+      "-m",
+      "debugpy",
+      "--listen",
+      "0.0.0.0:5678",
+      "-m",
+      "uvicorn",
+      "app.main:app",
+      "--host",
+      "0.0.0.0",
+      "--port",
+      "8080",
+      "--reload"
+    ]
+
 
   migrations:
     <<: *app-base
