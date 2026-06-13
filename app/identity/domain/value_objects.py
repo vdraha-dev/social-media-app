@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -14,6 +15,17 @@ class HashedPassword:
 @dataclass(frozen=True, slots=True)
 class UserName:
     value: str
+
+
+@dataclass(frozen=True, slots=True)
+class Email:
+    value: str
+
+    def _validation(self):
+        if not re.match(
+            r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", self.value
+        ):
+            raise ValueError(f"Invalid email address: {self.value!r}")
 
 
 class RoleEnum(StrEnum):
