@@ -10,9 +10,7 @@ x-app-base: &app-base
   env_file:
     - .env
   volumes:
-    - .:/app
-    - /app/.venv
-
+    - ./alembic/versions:/app/alembic/versions
 
 services:
   app:
