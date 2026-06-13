@@ -45,7 +45,10 @@ class RegisterUserhandler:
         )
 
         return UserResponse(
-            id=user.id, username=user.username, email=user.email, role=user.role.value
+            id=user.id,
+            username=str(user.username),
+            email=str(user.email),
+            role=str(user.role),
         )
 
 
