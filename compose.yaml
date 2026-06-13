@@ -52,11 +52,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: appdb
-
     ports:
       - target: 5432
-        published: 5433
-
+        published: "${POSTGRES_PORT}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -69,4 +67,3 @@ services:
 
 volumes:
   postgres_data:
-  venv_data:
