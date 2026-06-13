@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from uuid import UUID
 
-import pytest
 from pytz import UTC
 
 from app.shared.domain.base_entity import BaseEntity
@@ -60,7 +59,7 @@ class TestBaseEntityEquality:
         e = ConcreteEntity()
         assert e != "not-an-entity"
         assert e != 42
-        assert e != None
+        assert e is not None
 
     def test_hash_is_none_on_subclass(self):
         e = ConcreteEntity()

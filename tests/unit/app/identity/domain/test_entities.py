@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import pytest
@@ -109,16 +108,12 @@ class TestAccessTokenCreation:
 
 class TestAccessTokenBlacklist:
     def test_blacklist_sets_flag(self):
-        token = AccessToken(
-            token="abc", user_id=uuid4(), expired_at=datetime.now(UTC)
-        )
+        token = AccessToken(token="abc", user_id=uuid4(), expired_at=datetime.now(UTC))
         token.blacklist()
         assert token.blacklisted is True
 
     def test_blacklist_updates_updated_at(self):
-        token = AccessToken(
-            token="abc", user_id=uuid4(), expired_at=datetime.now(UTC)
-        )
+        token = AccessToken(token="abc", user_id=uuid4(), expired_at=datetime.now(UTC))
         original = token.updated_at
         token.blacklist()
         assert token.updated_at > original

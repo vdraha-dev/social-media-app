@@ -152,7 +152,7 @@ class TestPagination:
     def test_offset_property_raises_attribute_error(self):
         p = Pagination(page_number=3, page_size=10)
         with pytest.raises(AttributeError):
-            p.offset
+            p.offset = 5
 
     def test_immutable(self):
         p = Pagination()

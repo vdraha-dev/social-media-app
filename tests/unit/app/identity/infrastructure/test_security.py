@@ -1,6 +1,6 @@
 from datetime import datetime
-from unittest.mock import MagicMock, patch
-from uuid import UUID, uuid4
+from unittest.mock import patch
+from uuid import uuid4
 
 import jwt
 import pytest

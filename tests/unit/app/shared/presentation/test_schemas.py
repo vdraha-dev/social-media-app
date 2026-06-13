@@ -1,5 +1,3 @@
-import pytest
-
 from app.shared.presentation.schemas import ErrorResponse, PagedResponse
 
 
