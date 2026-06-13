@@ -37,21 +37,13 @@ services:
       - venv_data:/app/.venv
 
   migrations:
-    build: .
-
-    command: ["alembic", "upgrade", "head"]
-
-    environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/appdb
-      SYNC_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/appdb
-
-    volumes:
-      - .:/app
-      - venv_data:/app/.venv
-
+    <<: *app-base
     depends_on:
       postgres:
         condition: service_healthy
+
+    command: ["alembic", "upgrade", "head"]
+
 
   postgres:
     image: postgres:16-alpine
