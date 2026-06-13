@@ -17,11 +17,10 @@ x-app-base: &app-base
 
 services:
   app:
-    build: .
-    ports:
-      - target: 8080
-        published: 5001
-
+    <<: *app-base
+    build:
+      args:
+        UV_GROUPS: ""
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
 
     depends_on:
