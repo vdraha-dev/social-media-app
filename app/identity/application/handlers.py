@@ -18,7 +18,8 @@ from app.identity.domain.service import (
     ITokenService,
     IUserRepository,
 )
-from app.identity.domain.value_objects import Role
+from app.identity.domain.value_objects import Role, UserName
+from app.shared.domain.value_objects import Email
 from app.shared.events.event_bus import event_bus
 
 
@@ -32,8 +33,8 @@ class RegisterUserhandler:
             raise UserAlreadyExistsError("User already exists with this email")
 
         user = User(
-            username=request.username,
-            email=request.email,
+            username=UserName(request.username),
+            email=Email(request.email),
             password=self.hasher.hash(request.password),
             role=Role(),
         )

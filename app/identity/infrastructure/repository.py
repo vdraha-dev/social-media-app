@@ -5,8 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.identity.domain.entities import AccessToken, User
 from app.identity.domain.service import IAccessTokenRepository, IUserRepository
-from app.identity.domain.value_objects import HashedPassword, Role
+from app.identity.domain.value_objects import HashedPassword, Role, UserName
 from app.identity.infrastructure.models import AccessTokenModel, UserModel
+from app.shared.domain.value_objects import Email
 
 
 class UserRepository(IUserRepository):
@@ -45,8 +46,8 @@ class UserRepository(IUserRepository):
     def _to_entity(self, m: UserModel) -> User:
         e = User(
             # id=m.id,
-            username=m.username,
-            email=m.email,
+            username=UserName(m.username),
+            email=Email(m.email),
             password=HashedPassword(m.password_hash),
             role=Role(m.role),
             last_login=m.last_login,
@@ -63,10 +64,10 @@ class UserRepository(IUserRepository):
     def _to_model(self, e: User) -> UserModel:
         return UserModel(
             id=e.id,
-            username=e.username,
+            username=str(e.username),
             email=str(e.email),
-            password_hash=e.password.value,
-            role=e.role.value,
+            password_hash=str(e.password),
+            role=str(e.role),
             last_login=e.last_login,
             created_at=e.created_at,
             updated_at=e.updated_at,

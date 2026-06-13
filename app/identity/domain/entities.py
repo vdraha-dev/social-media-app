@@ -4,14 +4,15 @@ from uuid import UUID
 
 from pytz import UTC
 
-from app.identity.domain.value_objects import HashedPassword, Role, RoleEnum
+from app.identity.domain.value_objects import HashedPassword, Role, RoleEnum, UserName
 from app.shared.domain.base_entity import BaseEntity
+from app.shared.domain.value_objects import Email
 
 
 @dataclass(slots=True)
 class User(BaseEntity):
-    username: str
-    email: str
+    username: UserName
+    email: Email
     password: HashedPassword
     role: Role
     last_login: datetime | None = None
