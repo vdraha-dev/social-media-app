@@ -54,8 +54,6 @@ class TestRegisterUserhandler:
 
     @pytest.mark.asyncio
     async def test_register_new_user(self, mock_user_repo, mock_hasher):
-        from pydantic import ValidationError
-
         mock_user_repo.exists_by_email = AsyncMock(return_value=False)
         mock_user_repo.save = AsyncMock()
         mock_hasher.hash.return_value = HashedPassword("hashed_val")
@@ -67,8 +65,7 @@ class TestRegisterUserhandler:
             password="plainpass",
         )
 
-        with pytest.raises(ValidationError):
-            await handler.handle(request)
+        await handler.handle(request)
 
         mock_user_repo.exists_by_email.assert_awaited_once_with("new@example.com")
         mock_user_repo.save.assert_awaited_once()
