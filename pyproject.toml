@@ -9,7 +9,6 @@ dependencies = [
     "pydantic[email]>=2.13.4",
     "pydantic-settings>=2.14.1",
     "pytz>=2026.2",
-    "ruff>=0.15.15",
     "sqlalchemy>=2.0.50",
     "uvicorn>=0.49.0",
     "passlib>=1.7.4",
@@ -39,3 +38,11 @@ ignore = ["B008"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[dependency-groups]
+debug = [
+    "debugpy>=1.8.21",
+]
+lint = [
+    "ruff>=0.15.17",
+]
