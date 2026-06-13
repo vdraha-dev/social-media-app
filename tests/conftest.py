@@ -9,6 +9,7 @@ def session():
     s.add = MagicMock()
     return s
 
+
 @pytest.fixture
 def secret_key():
     return "1111111111111111111111111111111111111111111111111111111111111111"
