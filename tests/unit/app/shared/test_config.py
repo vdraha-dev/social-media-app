@@ -4,6 +4,7 @@ from app.shared.config import Settings
 
 
 class TestSettingsDefaults:
+    @patch.dict("os.environ", {}, clear=True)
     def test_default_values(self):
         s = Settings(_env_file=None)
         assert s.DATABASE_URL == ""
