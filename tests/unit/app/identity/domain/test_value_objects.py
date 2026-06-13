@@ -98,11 +98,6 @@ class TestRole:
         r2 = Role()
         assert r1 == r2
 
-    def test_validate_not_auto_called(self):
-        role = Role("invalid")
-        assert role.value == "invalid"
-
     def test_validate_raises_on_call_with_invalid(self):
-        role = Role("invalid")
         with pytest.raises(ValueError, match="Invalid role type"):
-            role._validate()
+            Role("invalid")

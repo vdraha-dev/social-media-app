@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.identity.domain.value_objects import Role
+from app.identity.domain.value_objects import RoleEnum
 from app.identity.infrastructure.repository import (
     AccessTokenRepository,
     UserRepository,
@@ -35,7 +35,7 @@ class TestUserRepository:
         mock_model.username = "testuser"
         mock_model.email = "test@example.com"
         mock_model.password_hash = "hash"
-        mock_model.role = Role()
+        mock_model.role = RoleEnum.User
         mock_model.last_login = None
         mock_model.created_at = MagicMock()
         mock_model.updated_at = MagicMock()
@@ -61,7 +61,7 @@ class TestUserRepository:
         mock_model.username = "testuser"
         mock_model.email = "test@example.com"
         mock_model.password_hash = "hash"
-        mock_model.role = Role()
+        mock_model.role = RoleEnum.User
         mock_model.last_login = None
         mock_model.created_at = MagicMock()
         mock_model.updated_at = MagicMock()
