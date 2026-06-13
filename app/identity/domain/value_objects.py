@@ -11,6 +11,11 @@ class HashedPassword:
             raise ValueError("Invalid password. Password cannot be empty.")
 
 
+@dataclass(frozen=True, slots=True)
+class UserName:
+    value: str
+
+
 class RoleEnum(StrEnum):
     User = "user"
     Admin = "admin"
