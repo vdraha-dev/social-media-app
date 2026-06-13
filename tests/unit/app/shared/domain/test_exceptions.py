@@ -26,10 +26,6 @@ class TestNotFoundError:
     def test_has_entity_and_identifier_attributes(self):
         assert hasattr(NotFoundError, "__init__")
 
-    def test_bug_super_call_missing_parentheses(self):
-        with pytest.raises(TypeError):
-            NotFoundError("User", "123")
-
 
 class TestAlreadyExistsError:
     def test_is_subclass_of_domain_error(self):
@@ -37,10 +33,6 @@ class TestAlreadyExistsError:
 
     def test_has_entity_field_value_attributes(self):
         assert hasattr(AlreadyExistsError, "__init__")
-
-    def test_bug_super_call_missing_parentheses(self):
-        with pytest.raises(TypeError):
-            AlreadyExistsError("User", "email", "a@b.com")
 
 
 class TestPermissionDeniedError:
@@ -95,11 +87,3 @@ class TestExceptionHierarchy:
     def test_subclasses_caught_by_domain_error(self, exc_type, args):
         with pytest.raises(DomainError):
             raise exc_type(*args)
-
-    @pytest.mark.parametrize(
-        "exc_type",
-        [NotFoundError, AlreadyExistsError],
-    )
-    def test_buggy_subclasses_cannot_be_instantiated(self, exc_type):
-        with pytest.raises(TypeError):
-            exc_type("dummy", "dummy")
