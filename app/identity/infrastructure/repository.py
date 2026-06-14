@@ -27,10 +27,10 @@ class UserRepository(IUserRepository):
     async def save(self, user: User):
         user_m = await self.session.get(UserModel, user.id)
         if user_m:
-            user_m.username = user.username
+            user_m.username = str(user.username)
             user_m.email = str(user.email)
-            user_m.password_hash = user.password.value
-            user_m.role = user.role.value
+            user_m.password_hash = str(user.password)
+            user_m.role = str(user.role)
             user_m.last_login = user.last_login
             user_m.updated_at = user.updated_at
         else:

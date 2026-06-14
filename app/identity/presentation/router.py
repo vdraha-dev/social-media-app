@@ -76,7 +76,7 @@ async def get_me(
     user: User = await verify_handler.handle(credentials.credentials)
     return UserResponse(
         id=user.id,
-        username=user.username,
-        email=user.email,
-        role=user.role.value,
+        username=str(user.username),
+        email=str(user.email),
+        role=str(user.role),
     )
