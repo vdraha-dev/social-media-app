@@ -27,6 +27,8 @@ services:
       args:
         UV_GROUPS: "--group debug"
     ports:
+      - target: 8080
+        published: "${APP_PORT}"
       #  Debug port
       - target: 5678
         published: "${DEBUG_PORT}"
