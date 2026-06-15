@@ -43,6 +43,7 @@ debug = [
     "debugpy>=1.8.21",
 ]
 lint = [
+    "pyright>=1.1.410",
     "ruff>=0.15.17",
 ]
 test = [
