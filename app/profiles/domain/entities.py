@@ -12,7 +12,7 @@ class UserProfile(BaseEntity):
     displayed_name: DisplayedName
     avatart_url: Url | None = None
     bio: Bio | None = None
-    social_links: list[SocialLink] = field(default_factory=list)
+    social_links: list[SocialLink] = field(default_factory=list[SocialLink])
 
     def set_displayed_name(self, new_displayed_name: DisplayedName):
         self.displayed_name = new_displayed_name
