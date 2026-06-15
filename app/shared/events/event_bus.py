@@ -25,7 +25,7 @@ class EventBus:
     def subscribe(self, event_type: type[DomainEvent], handler: EventHandler) -> None:
         self._handlers[event_type].append(handler)
 
-    async def publish(self, event: DomainEvent) -> Awaitable[None]:
+    async def publish(self, event: DomainEvent):
         handlers = self._handlers.get(type(event), None)
         if not handlers:
             return

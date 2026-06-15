@@ -41,7 +41,9 @@ class RegisterUserhandler:
 
         await self.user_repo.save(user)
         await event_bus.publish(
-            UserRegistered(user_id=user.id, username=user.username, email=user.email)
+            UserRegistered(
+                user_id=user.id, username=str(user.username), email=str(user.email)
+            )
         )
 
         return UserResponse(

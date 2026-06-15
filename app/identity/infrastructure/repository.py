@@ -30,7 +30,7 @@ class UserRepository(IUserRepository):
             user_m.username = str(user.username)
             user_m.email = str(user.email)
             user_m.password_hash = str(user.password)
-            user_m.role = str(user.role)
+            user_m.role = user.role.value
             user_m.last_login = user.last_login
             user_m.updated_at = user.updated_at
         else:
