@@ -1,0 +1,4 @@
+- Rewrite the generated unit tests for `shared`
+- Rewrite the generated integration tests for `shared`
+- Rewrite the generated unit tests for `identity`
+- Rewrite the generated integration tests for `identity`
