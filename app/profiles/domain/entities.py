@@ -10,7 +10,7 @@ from app.shared.domain.value_objects import Url
 class UserProfile(BaseEntity):
     user_id: UUID
     displayed_name: DisplayedName
-    avatart_url: Url | None = None
+    avatar_url: Url | None = None
     bio: Bio | None = None
     social_links: list[SocialLink] = field(default_factory=list[SocialLink])
 
@@ -19,7 +19,7 @@ class UserProfile(BaseEntity):
         self._touch()
 
     def set_avatar_url(self, new_avatar_url: Url):
-        self.avatart_url = new_avatar_url
+        self.avatar_url = new_avatar_url
         self._touch()
 
     def set_bio(self, new_bio: Bio):

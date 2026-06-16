@@ -13,7 +13,7 @@ class UserProfileModel(Base):
         PUUID(as_uuid=True), ForeignKey("users.id"), unique=True
     )
     displayed_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    avatart_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
     social_links: Mapped[list[str]] = mapped_column(
         ARRAY(String(512)), default=list, nullable=False
