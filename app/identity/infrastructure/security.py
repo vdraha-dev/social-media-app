@@ -42,7 +42,7 @@ class TokenService(ITokenService):
             token=token, user_id=user_id, expired_at=expired_at, blacklisted=False
         )
 
-    def decode(self, token: str) -> dict:
+    def decode(self, token: str) -> dict[str, str]:
         try:
             return jwt.decode(
                 token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
