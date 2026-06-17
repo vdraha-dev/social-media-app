@@ -106,7 +106,7 @@ class AuthenticateUserByTokenUseCase:
         self.token_repo = token_repo
         self.token_service = token_service
 
-    async def handle(self, token_str: str) -> User:
+    async def execute(self, token_str: str) -> User:
         payload = self.token_service.decode(token_str)
 
         token = await self.token_repo.get_by_token(token_str)
