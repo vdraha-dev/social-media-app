@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 import jwt
-from passlib.context import CryptContext
+from passlib.context import CryptContext  # pyright: ignore
 from pytz import UTC
 
 from app.identity.domain.entities import AccessToken
@@ -16,10 +16,11 @@ class PasswordHasher(IPasswordHasher):
     hash_context = CryptContext(schemes=settings.HASH_ALGORITHMS, deprecated="auto")
 
     def hash(self, raw: str) -> HashedPassword:
-        return HashedPassword(value=self.hash_context.hash(raw))
+        return HashedPassword(value=self.hash_context.hash(raw))  # pyright: ignore
 
     def verify(self, raw: str, hashed: HashedPassword) -> bool:
-        return self.hash_context.verify(raw, hashed.value)
+
+        return self.hash_context.verify(raw, hashed.value)  # pyright: ignore
 
 
 class TokenService(ITokenService):
