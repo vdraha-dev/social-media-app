@@ -119,3 +119,11 @@ class VerifyUserByTokenHandler:
             raise InvalidCredentialsError("Invalid credentials")
 
         return user
+
+
+class GetUserIdByTokenUseCase:
+    def __init__(self, token_service: ITokenService):
+        self.token_service = token_service
+
+    def sync_handle(self, token: str) -> UUID:
+        return UUID(self.token_service.decode(token)["user_id"])
