@@ -45,19 +45,15 @@ class UserRepository(IUserRepository):
 
     def _to_entity(self, m: UserModel) -> User:
         e = User(
-            # id=m.id,
+            id=m.id,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
             username=UserName(m.username),
             email=Email(m.email),
             password=HashedPassword(m.password_hash),
             role=Role(m.role),
             last_login=m.last_login,
-            # created_at=m.created_at,
-            # updated_at=m.updated_at,
         )
-
-        e.id = m.id
-        e.created_at = m.created_at
-        e.updated_at = m.updated_at
 
         return e
 
@@ -110,16 +106,13 @@ class AccessTokenRepository(IAccessTokenRepository):
 
     def _to_entity(self, m: AccessTokenModel) -> AccessToken:
         token = AccessToken(
-            # id=m.id,
-            # created_at=m.created_at,
-            # updated_at=m.updated_at,
+            id=m.id,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
             token=m.token,
             user_id=m.user_id,
             expired_at=m.expired_at,
             blacklisted=m.blacklisted,
         )
-        token.id = m.id
-        token.created_at = m.created_at
-        token.updated_at = m.updated_at
 
         return token
