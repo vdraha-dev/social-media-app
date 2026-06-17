@@ -15,3 +15,11 @@ class GetUserProfileByUserIdUseCase:
             raise UserProfileNotFound("User profile not found for user")
 
         return profile
+
+
+class UpdateUserProfileUseCase:
+    def __init__(self, profile_repo: IProfileRepository):
+        self.profile_repo = profile_repo
+
+    async def execute(self, user_profile: UserProfile):
+        await self.profile_repo.save(user_profile)
