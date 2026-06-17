@@ -55,19 +55,21 @@ class UserProfile(BaseEntity):
         return tuple(self._social_links)
 
     def set_displayed_name(self, new_displayed_name: DisplayedName):
-        self.displayed_name = new_displayed_name
+        if new_displayed_name == self._displayed_name:
+            return
+
+        self._displayed_name = new_displayed_name
         self._touch()
 
-    def set_avatar_url(self, new_avatar_url: Url):
-        self.avatar_url = new_avatar_url
+    def set_avatar_url(self, new_avatar_url: Url | None):
+        if new_avatar_url == self._avatar_url:
+            return
+
+        self._avatar_url = new_avatar_url
         self._touch()
 
-    def set_bio(self, new_bio: Bio):
-        self.bio = new_bio
-        self._touch()
-
-    def add_social_link(self, social_link: SocialLink):
-        if social_link in self.social_links:
+    def set_bio(self, new_bio: Bio | None):
+        if new_bio == self._bio:
             return
 
         self.social_links.append(social_link)
