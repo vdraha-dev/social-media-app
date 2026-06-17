@@ -21,10 +21,11 @@ class RegisterUserUseCase:
         self.user_repo = user_repo
         self.hasher = password_hasher
 
-    async def execute(self, new_user: User):
+    async def execute(self, new_user: User, raw_password: str):
         if await self.user_repo.exists_by_email(new_user.email):
             raise UserAlreadyExistsError("User already exists with this email")
 
+        new_user.change_password(self.hasher.hash(raw_password))
         await self.user_repo.save(new_user)
         await event_bus.publish(
             UserRegistered(
