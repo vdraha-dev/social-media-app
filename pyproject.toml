@@ -51,7 +51,7 @@ exclude = [
     "alembic",
     "build",
     "dist",
-    "tests/fixtures",
+    "tests",
 ]
 
 [dependency-groups]
