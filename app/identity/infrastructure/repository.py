@@ -18,8 +18,8 @@ class UserRepository(IUserRepository):
         user = await self.session.get(UserModel, user_id)
         return self._to_entity(user) if user else None
 
-    async def get_by_email(self, email: str) -> User | None:
-        stmt = select(UserModel).where(UserModel.email == email)
+    async def get_by_email(self, email: Email) -> User | None:
+        stmt = select(UserModel).where(UserModel.email == str(email))
         result = await self.session.execute(stmt)
         user = result.scalar_one_or_none()
         return self._to_entity(user) if user else None
@@ -37,8 +37,8 @@ class UserRepository(IUserRepository):
             self.session.add(self._to_model(user))
         await self.session.flush()
 
-    async def exists_by_email(self, email: str) -> bool:
-        stmt = select(UserModel).where(UserModel.email == email)
+    async def exists_by_email(self, email: Email) -> bool:
+        stmt = select(UserModel).where(UserModel.email == str(email))
         result = await self.session.execute(stmt)
         user = result.scalar_one_or_none()
         return user is not None

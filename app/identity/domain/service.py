@@ -3,6 +3,7 @@ from uuid import UUID
 
 from app.identity.domain.entities import AccessToken, User
 from app.identity.domain.value_objects import HashedPassword
+from app.shared.domain.value_objects import Email
 
 
 class IUserRepository(ABC):
@@ -10,13 +11,13 @@ class IUserRepository(ABC):
     async def get_user_by_id(self, user_id: UUID) -> User | None: ...
 
     @abstractmethod
-    async def get_by_email(self, email: str) -> User | None: ...
+    async def get_by_email(self, email: Email) -> User | None: ...
 
     @abstractmethod
     async def save(self, user: User): ...
 
     @abstractmethod
-    async def exists_by_email(self, email: str) -> bool: ...
+    async def exists_by_email(self, email: Email) -> bool: ...
 
 
 class IAccessTokenRepository(ABC):
