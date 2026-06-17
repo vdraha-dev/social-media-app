@@ -27,7 +27,7 @@ class TokenService(ITokenService):
         expired_at = datetime.now(UTC) + timedelta(
             hours=settings.ACCESS_TOKEN_TTL_HOURS
         )
-        token = jwt.encode(
+        token = jwt.encode(  # pyright: ignore
             {
                 "user_id": str(user_id),
                 "role": role,
@@ -44,7 +44,7 @@ class TokenService(ITokenService):
 
     def decode(self, token: str) -> dict[str, str]:
         try:
-            return jwt.decode(
+            return jwt.decode(  # pyright: ignore
                 token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
             )
         except jwt.ExpiredSignatureError:
