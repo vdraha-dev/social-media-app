@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import Depends
 from fastapi.routing import APIRouter
 
-from app.identity.application.handlers import AuthenticateUserByTokenUseCase
+from app.identity.application.use_cases import AuthenticateUserByTokenUseCase
 from app.identity.presentation.dependencies import get_current_user_token
 from app.identity.presentation.router import (
     AccessTokenRepository,

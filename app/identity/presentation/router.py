@@ -7,7 +7,7 @@ from app.identity.application.dto import (
     TokenResponse,
     UserResponse,
 )
-from app.identity.application.handlers import (
+from app.identity.application.use_cases import (
     LoginHandler,
     LogoutHandler,
     RegisterUserhandler,

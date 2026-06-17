@@ -1,11 +1,5 @@
 from uuid import UUID
 
-from app.identity.application.dto import (
-    LoginRequest,
-    RegisterUserRequest,
-    TokenResponse,
-    UserResponse,
-)
 from app.identity.domain.entities import User
 from app.identity.domain.events import UserLogedIn, UserLoggedOut, UserRegistered
 from app.identity.domain.exceptions import (
@@ -18,43 +12,30 @@ from app.identity.domain.service import (
     ITokenService,
     IUserRepository,
 )
-from app.identity.domain.value_objects import Role, UserName
 from app.shared.domain.value_objects import Email
 from app.shared.events.event_bus import event_bus
 
 
-class RegisterUserhandler:
+class RegisterUserUseCase:
     def __init__(self, user_repo: IUserRepository, password_hasher: IPasswordHasher):
         self.user_repo = user_repo
         self.hasher = password_hasher
 
-    async def handle(self, request: RegisterUserRequest):
-        if await self.user_repo.exists_by_email(request.email):
+    async def execute(self, new_user: User):
+        if await self.user_repo.exists_by_email(new_user.email):
             raise UserAlreadyExistsError("User already exists with this email")
 
-        user = User(
-            username=UserName(request.username),
-            email=Email(request.email),
-            password=self.hasher.hash(request.password),
-            role=Role(),
-        )
-
-        await self.user_repo.save(user)
+        await self.user_repo.save(new_user)
         await event_bus.publish(
             UserRegistered(
-                user_id=user.id, username=str(user.username), email=str(user.email)
+                user_id=new_user.id,
+                username=str(new_user.username),
+                email=str(new_user.email),
             )
         )
 
-        return UserResponse(
-            id=user.id,
-            username=str(user.username),
-            email=str(user.email),
-            role=str(user.role),
-        )
 
-
-class LoginHandler:
+class LoginUseCase:
     def __init__(
         self,
         user_repo: IUserRepository,
@@ -67,10 +48,10 @@ class LoginHandler:
         self.hasher = hasher
         self.token_service = token_service
 
-    async def handle(self, request: LoginRequest):
-        user = await self.user_repo.get_by_email(request.email)
+    async def handle(self, email: Email, password: str) -> str:
+        user = await self.user_repo.get_by_email(email)
 
-        if not user or not self.hasher.verify(request.password, user.password):
+        if not user or not self.hasher.verify(password, user.password):
             raise InvalidCredentialsError(
                 "Invalid credentials. Wrong email or password."
             )
@@ -83,7 +64,7 @@ class LoginHandler:
 
         await event_bus.publish(UserLogedIn(user_id=user.id))
 
-        return TokenResponse(access_token=token.token, token_type="Bearer")
+        return token.token
 
 
 class LogoutHandler:
