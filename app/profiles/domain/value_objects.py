@@ -24,6 +24,16 @@ class SocialLink(BaseValueObject):
     def __str__(self):
         return str(self.url)
 
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "platform": self.platform,
+            "url": str(self.url),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, str]) -> SocialLink:
+        return cls(platform=data["platform"], url=Url(data["url"]))
+
 
 @dataclass(frozen=True, slots=True)
 class DisplayedName(BaseValueObject):
