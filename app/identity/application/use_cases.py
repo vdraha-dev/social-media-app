@@ -49,7 +49,7 @@ class LoginUseCase:
         self.hasher = hasher
         self.token_service = token_service
 
-    async def handle(self, email: Email, password: str) -> str:
+    async def execute(self, email: Email, password: str) -> str:
         user = await self.user_repo.get_by_email(email)
 
         if not user or not self.hasher.verify(password, user.password):
@@ -72,7 +72,7 @@ class LogoutUseCase:
     def __init__(self, token_repo: IAccessTokenRepository):
         self.token_repo = token_repo
 
-    async def handle(self, user_id: UUID):
+    async def execute(self, user_id: UUID):
         await self.token_repo.blacklist_all_for_user(user_id)
         await event_bus.publish(UserLoggedOut(user_id=user_id))
 
@@ -107,5 +107,5 @@ class GetUserIdByTokenUseCase:
     def __init__(self, token_service: ITokenService):
         self.token_service = token_service
 
-    def sync_handle(self, token: str) -> UUID:
+    def execute(self, token: str) -> UUID:
         return UUID(self.token_service.decode(token)["user_id"])
