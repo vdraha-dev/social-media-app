@@ -78,7 +78,12 @@ class UnitOfWork:
     async def __aenter__(self) -> UnitOfWork:
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: BaseException | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ):
         if exc_type:
             await self.rollback()
         else:
@@ -92,7 +97,7 @@ class UnitOfWork:
         await self.session.rollback()
 
 
-async def get_uow():
+async def get_uow() -> AsyncGenerator[UnitOfWork]:
     async with AsyncSessionLocal() as session:
         async with UnitOfWork(session) as uow:
             yield uow
