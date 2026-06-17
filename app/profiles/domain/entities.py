@@ -7,7 +7,6 @@ from app.shared.domain.base_entity import BaseEntity
 from app.shared.domain.value_objects import Url
 
 
-@dataclass(slots=True)
 class UserProfile(BaseEntity):
     __slots__ = (
         "_user_id",
