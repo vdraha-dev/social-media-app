@@ -34,8 +34,7 @@ class Role(BaseValueObject):
     value: RoleEnum = RoleEnum.User
 
     def _validate(self):
-        if not isinstance(self.value, RoleEnum):
-            raise ValueError(f"Invalid role type: {type(self.value)}")
+        ...
 
     @property
     def is_admin(self) -> bool:
