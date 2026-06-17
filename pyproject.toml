@@ -45,7 +45,6 @@ venv = ".venv"
 
 exclude = [
     "**/__pycache__",
-    "app/identity",
     ".venv",
     "alembic",
     "build",
