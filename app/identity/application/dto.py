@@ -10,14 +10,14 @@ class RegisterUserRequest(BaseModel):
 
     @field_validator("password")
     @classmethod
-    def password_validator(cls, v):
+    def password_validator(cls, v: str):
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters long")
         return v
 
     @field_validator("username")
     @classmethod
-    def username_validator(cls, v):
+    def username_validator(cls, v: str):
         if len(v) < 3:
             raise ValueError("Username must be at least 3 characters long")
         return v
