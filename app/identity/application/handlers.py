@@ -95,7 +95,7 @@ class LogoutHandler:
         await event_bus.publish(UserLoggedOut(user_id=user_id))
 
 
-class VerifyUserByTokenHandler:
+class AuthenticateUserByTokenUseCase:
     def __init__(
         self,
         user_repo: IUserRepository,
