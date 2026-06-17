@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
 
@@ -84,15 +83,47 @@ class User(BaseEntity):
         self._touch()
 
 
-@dataclass(slots=True)
 class AccessToken(BaseEntity):
-    token: str
-    user_id: UUID
-    expired_at: datetime
-    blacklisted: bool = False
+    __slots__ = ("_token", "_user_id", "_expired_at", "_blacklisted")
+
+    def __init__(
+        self,
+        token: str,
+        user_id: UUID,
+        expired_at: datetime,
+        blacklisted: bool = False,
+        *,
+        id: UUID | None = None,
+        created_at: datetime | None = None,
+        updated_at: datetime | None = None,
+    ):
+        super().__init__(id, created_at, updated_at)
+        self._token = token
+        self._user_id = user_id
+        self._expired_at = expired_at
+        self._blacklisted = blacklisted
+
+    @property
+    def token(self) -> str:
+        return self._token
+
+    @property
+    def user_id(self) -> UUID:
+        return self._user_id
+
+    @property
+    def expired_at(self) -> datetime:
+        return self._expired_at
+
+    @property
+    def blacklisted(self) -> bool:
+        return self._blacklisted
 
     def blacklist(self):
-        self.blacklisted = True
+        if self._blacklisted:
+            return
+
+        self._blacklisted = True
         self._touch()
 
     @property
