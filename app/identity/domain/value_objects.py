@@ -33,8 +33,7 @@ class RoleEnum(StrEnum):
 class Role(BaseValueObject):
     value: RoleEnum = RoleEnum.User
 
-    def _validate(self):
-        ...
+    def _validate(self): ...
 
     @property
     def is_admin(self) -> bool:
