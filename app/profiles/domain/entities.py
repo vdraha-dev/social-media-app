@@ -72,5 +72,33 @@ class UserProfile(BaseEntity):
         if new_bio == self._bio:
             return
 
-        self.social_links.append(social_link)
+        self._bio = new_bio
         self._touch()
+
+    def add_social_links(self, social_links: SocialLink | Iterable[SocialLink]):
+        if isinstance(social_links, SocialLink):
+            social_links = [social_links]
+
+        changed = False
+
+        for link in social_links:
+            if link not in self._social_links:
+                self._social_links.append(link)
+                changed = True
+
+        if changed:
+            self._touch()
+
+    def remove_social_links(self, social_links: SocialLink | Iterable[SocialLink]):
+        if isinstance(social_links, SocialLink):
+            social_links = [social_links]
+
+        changed = False
+
+        for link in social_links:
+            if link in self._social_links:
+                self._social_links.remove(link)
+                changed = True
+
+        if changed:
+            self._touch()
