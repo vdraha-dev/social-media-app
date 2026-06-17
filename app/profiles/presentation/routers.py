@@ -49,7 +49,8 @@ async def get_profile(
     return ProfileResponse(
         user_id=profile.user_id,
         display_name=str(profile.displayed_name),
-        bio=str(profile.bio),
+        bio=str(profile.bio) if profile.bio else None,
+        avatar_url=str(profile.avatar_url) if profile.avatar_url else None,
         social_links=[link.to_dict() for link in profile.social_links],
     )
 
@@ -66,7 +67,8 @@ async def get_me(
     return ProfileResponse(
         user_id=profile.user_id,
         display_name=str(profile.displayed_name),
-        bio=str(profile.bio),
+        bio=str(profile.bio) if profile.bio else None,
+        avatar_url=str(profile.avatar_url) if profile.avatar_url else None,
         social_links=[link.to_dict() for link in profile.social_links],
     )
 
@@ -104,6 +106,7 @@ async def update_profile(
     return ProfileResponse(
         user_id=profile.user_id,
         display_name=str(profile.displayed_name),
-        bio=str(profile.bio),
+        bio=str(profile.bio) if profile.bio else None,
+        avatar_url=str(profile.avatar_url) if profile.avatar_url else None,
         social_links=[link.to_dict() for link in profile.social_links],
     )
