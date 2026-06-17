@@ -67,7 +67,7 @@ class LoginUseCase:
         return token.token
 
 
-class LogoutHandler:
+class LogoutUseCase:
     def __init__(self, token_repo: IAccessTokenRepository):
         self.token_repo = token_repo
 
