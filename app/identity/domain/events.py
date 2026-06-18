@@ -34,7 +34,7 @@ class UserRegistered(_UserIdMixin):
         return self._email
 
 
-class UserLogedIn(_UserIdMixin):
+class UserLoggedIn(_UserIdMixin):
     __slots__ = ()
 
 

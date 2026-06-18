@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from app.identity.domain.entities import User
-from app.identity.domain.events import UserLogedIn, UserLoggedOut, UserRegistered
+from app.identity.domain.events import UserLoggedIn, UserLoggedOut, UserRegistered
 from app.identity.domain.exceptions import (
     InvalidCredentialsError,
     UserAlreadyExistsError,
@@ -63,7 +63,7 @@ class LoginUseCase:
         token = self.token_service.generate(user.id, user.role.value)
         await self.token_repo.save(token)
 
-        await event_bus.publish(UserLogedIn(user_id=user.id))
+        await event_bus.publish(UserLoggedIn(user_id=user.id))
 
         return token.token
 
