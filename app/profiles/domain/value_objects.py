@@ -39,5 +39,7 @@ class SocialLink(BaseValueObject):
 class DisplayedName(BaseValueObject):
     value: str
 
+    def _validate(self): ...
+
     def __str__(self):
         return self.value

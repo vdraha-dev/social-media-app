@@ -8,7 +8,7 @@ from app.shared.domain.base_value_object import BaseValueObject
 class HashedPassword(BaseValueObject):
     value: str
 
-    def _validation(self):
+    def _validate(self):
         if not self.value:
             raise ValueError("Invalid password. Password cannot be empty.")
 
@@ -19,6 +19,8 @@ class HashedPassword(BaseValueObject):
 @dataclass(frozen=True, slots=True)
 class UserName(BaseValueObject):
     value: str
+
+    def _validate(self): ...
 
     def __str__(self):
         return self.value
