@@ -57,7 +57,7 @@ class User(BaseEntity):
         self._username = username
         self._touch()
 
-    def cheange_email(self, email: Email):
+    def change_email(self, email: Email):
         if email == self.email:
             return
 
