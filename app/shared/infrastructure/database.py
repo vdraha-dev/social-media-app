@@ -1,10 +1,10 @@
-import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime
 from types import TracebackType
+from uuid import UUID
 
 from sqlalchemy import DateTime, create_engine, func, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as PUUID
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.shared.config import settings
+from app.shared.utils import uuid_gen
 
 engine = create_async_engine(
     settings.DATABASE_URL,
@@ -50,10 +51,10 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 class Base(DeclarativeBase):
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+    id: Mapped[UUID] = mapped_column(
+        PUUID(as_uuid=True),
         primary_key=True,
-        default=uuid.uuid4,
+        default=uuid_gen,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -1,7 +1,9 @@
 from datetime import datetime
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from pytz import UTC
+
+from app.shared.utils import uuid_gen
 
 
 class BaseEntity:
@@ -10,7 +12,7 @@ class BaseEntity:
     def __init__(
         self, id: UUID | None, created_at: datetime | None, updated_at: datetime | None
     ):
-        self._id = id if id else uuid4()
+        self._id = id if id else uuid_gen()
         self._created_at = created_at if created_at else datetime.now(UTC)
         self._updated_at = updated_at if updated_at else datetime.now(UTC)
 

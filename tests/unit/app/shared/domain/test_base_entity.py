@@ -1,9 +1,10 @@
 from datetime import datetime
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from pytz import UTC
 
 from app.shared.domain.base_entity import BaseEntity
+from app.shared.utils import uuid_gen
 
 
 class ConcreteEntity(BaseEntity):
@@ -49,7 +50,7 @@ class TestBaseEntityCreation:
         assert e1.id != e2.id
 
     def test_explicit_id(self):
-        explicit_id = uuid4()
+        explicit_id = uuid_gen()
         entity = ConcreteEntity(id=explicit_id)
         assert entity.id == explicit_id
 
