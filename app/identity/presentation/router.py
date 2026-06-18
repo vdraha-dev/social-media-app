@@ -60,7 +60,7 @@ async def register(
     user = User(
         username=UserName(request.username),
         email=Email(request.email),
-        password=HashedPassword(value=""),
+        password=HashedPassword(value="0"),
         role=Role(RoleEnum.User),
     )
     await use_case.execute(user, request.password)
