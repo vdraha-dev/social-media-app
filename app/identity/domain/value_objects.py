@@ -20,7 +20,9 @@ class HashedPassword(BaseValueObject):
 class UserName(BaseValueObject):
     value: str
 
-    def _validate(self): ...
+    def _validate(self):
+        if not self.value:
+            raise ValueError("Invalid username. Username cannot be empty.")
 
     def __str__(self):
         return self.value
