@@ -1,17 +1,29 @@
 import asyncio
 from collections import defaultdict
 from collections.abc import Awaitable
-from dataclasses import field
 from datetime import datetime
 from typing import Protocol
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from pytz import UTC
 
+from app.shared.utils import uuid_gen
+
 
 class DomainEvent:
-    event_id: UUID = field(default_factory=uuid4)
-    occurred_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    __slots__ = ("_event_id", "_occured_at")
+
+    def __init__(self):
+        self._event_id: UUID = uuid_gen()
+        self._occured_at: datetime = datetime.now(tz=UTC)
+
+    @property
+    def event_id(self) -> UUID:
+        return self._event_id
+
+    @property
+    def occured_at(self) -> datetime:
+        return self._occured_at
 
 
 class EventHandler(Protocol):
