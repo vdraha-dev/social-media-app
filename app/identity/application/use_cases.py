@@ -30,8 +30,8 @@ class RegisterUserUseCase:
         await event_bus.publish(
             UserRegistered(
                 user_id=new_user.id,
-                username=str(new_user.username),
-                email=str(new_user.email),
+                username=new_user.username,
+                email=new_user.email,
             )
         )
 
