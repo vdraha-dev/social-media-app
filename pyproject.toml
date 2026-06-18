@@ -44,11 +44,10 @@ venvPath = "."
 venv = ".venv"
 
 exclude = [
-    "**/__pycache__",
+    "**/.*",
     ".venv",
-    "alembic",
-    "build",
-    "dist",
+    "**/__pycache__",
+    "**/node_modules",
 ]
 
 [dependency-groups]
