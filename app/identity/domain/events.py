@@ -25,6 +25,14 @@ class UserRegistered(_UserIdMixin):
         self._username = username
         self._email = email
 
+    @property
+    def username(self) -> UserName:
+        return self._username
+
+    @property
+    def email(self) -> Email:
+        return self._email
+
 
 class UserLogedIn(_UserIdMixin):
     __slots__ = ()
