@@ -1,7 +1,7 @@
 from os import environ
 
 import pytest
-from sqlalchemy import create_engine, text
+from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -36,6 +36,17 @@ def db_settings():
     settings.SYNC_DATABASE_URL = original_sync_url
 
 
+def _truncate_all(engine: Engine):
+    with engine.begin() as conn:
+        result = conn.execute(
+            text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
+        )
+        tables = [row[0] for row in result]
+        if tables:
+            table_list = ", ".join(f'"{t}"' for t in tables)
+            conn.execute(text(f"TRUNCATE TABLE {table_list} CASCADE"))
+
+
 @pytest.fixture(scope="session")
 def db_setup(db_settings: None):
     from app.shared.infrastructure.database import init_db
@@ -44,15 +55,13 @@ def db_setup(db_settings: None):
 
     sync_engine = create_engine(TEST_SYNC_DATABASE_URL)
     Base.metadata.create_all(sync_engine)
-    with sync_engine.begin() as conn:
-        conn.execute(text("TRUNCATE TABLE test_entities CASCADE"))
+    _truncate_all(sync_engine)
     sync_engine.dispose()
 
     yield
 
     clean_engine = create_engine(TEST_SYNC_DATABASE_URL)
-    with clean_engine.begin() as conn:
-        conn.execute(text("TRUNCATE TABLE test_entities CASCADE"))
+    _truncate_all(clean_engine)
     clean_engine.dispose()
 
 
