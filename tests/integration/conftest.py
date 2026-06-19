@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import (
 
 from app.shared.infrastructure.database import Base
 
-TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5433/appdb_test"
-TEST_SYNC_DATABASE_URL = "postgresql://postgres:postgres@localhost:5433/appdb_test"
+TEST_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@postgres:5432/appdb_test"
+TEST_SYNC_DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/appdb_test"
 
 
 @pytest.fixture(scope="session")
