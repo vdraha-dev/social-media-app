@@ -20,7 +20,7 @@ from app.identity.presentation.dependencies import get_current_user_token
 from app.shared.domain.value_objects import Email
 from app.shared.infrastructure.database import UnitOfWork, get_uow
 
-auth = APIRouter(prefix="/auth")
+auth = APIRouter(prefix="/auth", tags=["authentication"])
 
 
 async def register_dependency(
