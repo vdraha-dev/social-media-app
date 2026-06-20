@@ -38,11 +38,24 @@ ignore = ["B008"]
 quote-style = "double"
 indent-style = "space"
 
+[tool.pyright]
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+
+exclude = [
+    "**/.*",
+    ".venv",
+    "**/__pycache__",
+    "**/node_modules",
+]
+
 [dependency-groups]
 debug = [
     "debugpy>=1.8.21",
 ]
 lint = [
+    "pyright>=1.1.410",
     "ruff>=0.15.17",
 ]
 test = [

@@ -1,7 +1,7 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 
-class BaseValueObject:
+class BaseValueObject(ABC):
     def __post_init__(self):
         self._validate()
 

@@ -1,5 +1,6 @@
 import pytest
-from httpx2 import AsyncClient
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 from app.shared.domain.exceptions import (
     AlreadyExistsError,
@@ -9,122 +10,134 @@ from app.shared.domain.exceptions import (
     PermissionDeniedError,
     ValidationError,
 )
+from app.shared.presentation.exception_handlers import register_exception_handlers
 
 
-class TestExceptionHandlerRegistration:
-    def test_all_handlers_registered(self, app):
-        handlers = app.exception_handlers
-        for exc_type in [
-            NotFoundError,
-            AlreadyExistsError,
-            PermissionDeniedError,
-            ValidationError,
-            ConflictError,
-            DomainError,
-        ]:
-            assert exc_type in handlers, f"{exc_type.__name__} not registered"
+@pytest.fixture
+def app():
+    application = FastAPI()
+    register_exception_handlers(application)
+
+    @application.get("/test/not-found")
+    async def raise_not_found():  # pyright: ignore
+        raise NotFoundError("User", "123")
+
+    @application.get("/test/already-exists")
+    async def raise_already_exists():  # pyright: ignore
+        raise AlreadyExistsError("User", "email", "taken@test.com")
+
+    @application.get("/test/permission-denied")
+    async def raise_permission_denied():  # pyright: ignore
+        raise PermissionDeniedError("access resource", "Access denied")
+
+    @application.get("/test/validation")
+    async def raise_validation():  # pyright: ignore
+        raise ValidationError("Invalid input")
+
+    @application.get("/test/conflict")
+    async def raise_conflict():  # pyright: ignore
+        raise ConflictError("Resource conflict")
+
+    class _CustomDomainError(DomainError):
+        pass
+
+    @application.get("/test/domain-error")
+    async def raise_domain():  # pyright: ignore
+        raise _CustomDomainError("Generic domain error")
+
+    return application
 
 
-class TestNotFoundErrorHandler:
-    @pytest.mark.asyncio
-    async def test_returns_404_json(self, app, client: AsyncClient):
-        exc = NotFoundError("User", 42)
-        handler = client._transport.app.exception_handlers[NotFoundError]
-        response = await handler(None, exc)
+@pytest.fixture
+def client(app: FastAPI):
+    return TestClient(app)
+
+
+class TestNotFoundHandler:
+    def test_returns_404(self, client: TestClient):
+        response = client.get("/test/not-found")
         assert response.status_code == 404
-        body = response.body.decode()
-        assert "NOT_FOUND" in body
-        assert "User" in body
 
-    @pytest.mark.asyncio
-    async def test_404_response_structure(self, app, client: AsyncClient):
-        handler = app.exception_handlers[NotFoundError]
-        response = await handler(None, NotFoundError("Post", "abc"))
-        body = response.body.decode()
-        assert "detail" in body or '"detail"' in body
-        assert "NOT_FOUND" in body
+    def test_returns_detail(self, client: TestClient):
+        response = client.get("/test/not-found")
+        assert response.json()["detail"] == "User not found with identifier 123"
+
+    def test_returns_not_found_code(self, client: TestClient):
+        response = client.get("/test/not-found")
+        assert response.json()["code"] == "NOT_FOUND"
 
 
-class TestAlreadyExistsErrorHandler:
-    @pytest.mark.asyncio
-    async def test_returns_409_json(self, app, client: AsyncClient):
-        exc = AlreadyExistsError("User", "email", "a@b.com")
-        handler = app.exception_handlers[AlreadyExistsError]
-        response = await handler(None, exc)
-        assert response.status_code == 409
-        body = response.body.decode()
-        assert "ALREADY_EXISTS" in body
-
-    @pytest.mark.asyncio
-    async def test_409_response_structure(self, app, client: AsyncClient):
-        handler = app.exception_handlers[AlreadyExistsError]
-        response = await handler(None, AlreadyExistsError("Product", "sku", "X1"))
+class TestAlreadyExistsHandler:
+    def test_returns_409(self, client: TestClient):
+        response = client.get("/test/already-exists")
         assert response.status_code == 409
 
+    def test_returns_detail(self, client: TestClient):
+        response = client.get("/test/already-exists")
+        assert (
+            response.json()["detail"]
+            == "User with email='taken@test.com' already exists"
+        )
 
-class TestPermissionDeniedErrorHandler:
-    @pytest.mark.asyncio
-    async def test_returns_403_json(self, app, client: AsyncClient):
-        exc = PermissionDeniedError("delete", "not admin")
-        handler = app.exception_handlers[PermissionDeniedError]
-        response = await handler(None, exc)
-        assert response.status_code == 403
-        body = response.body.decode()
-        assert "PERMISSION_DENIED" in body
+    def test_returns_already_exists_code(self, client: TestClient):
+        response = client.get("/test/already-exists")
+        assert response.json()["code"] == "ALREADY_EXISTS"
 
-    @pytest.mark.asyncio
-    async def test_403_without_reason(self, app, client: AsyncClient):
-        handler = app.exception_handlers[PermissionDeniedError]
-        response = await handler(None, PermissionDeniedError("write"))
+
+class TestPermissionDeniedHandler:
+    def test_returns_403(self, client: TestClient):
+        response = client.get("/test/permission-denied")
         assert response.status_code == 403
 
+    def test_returns_detail(self, client: TestClient):
+        response = client.get("/test/permission-denied")
+        assert (
+            response.json()["detail"]
+            == "Acess denied for access resource: Access denied"
+        )
 
-class TestValidationErrorHandler:
-    @pytest.mark.asyncio
-    async def test_returns_422_json(self, app, client: AsyncClient):
-        exc = ValidationError("invalid input")
-        handler = app.exception_handlers[ValidationError]
-        response = await handler(None, exc)
+    def test_returns_permission_denied_code(self, client: TestClient):
+        response = client.get("/test/permission-denied")
+        assert response.json()["code"] == "PERMISSION_DENIED"
+
+
+class TestValidationHandler:
+    def test_returns_422(self, client: TestClient):
+        response = client.get("/test/validation")
         assert response.status_code == 422
-        body = response.body.decode()
-        assert "VALIDATION_ERROR" in body
 
-    @pytest.mark.asyncio
-    async def test_422_without_message(self, app, client: AsyncClient):
-        handler = app.exception_handlers[ValidationError]
-        response = await handler(None, ValidationError())
-        assert response.status_code == 422
+    def test_returns_detail(self, client: TestClient):
+        response = client.get("/test/validation")
+        assert response.json()["detail"] == "Invalid input"
+
+    def test_returns_validation_code(self, client: TestClient):
+        response = client.get("/test/validation")
+        assert response.json()["code"] == "VALIDATION_ERROR"
 
 
-class TestConflictErrorHandler:
-    @pytest.mark.asyncio
-    async def test_returns_409_json(self, app, client: AsyncClient):
-        exc = ConflictError("duplicate entry")
-        handler = app.exception_handlers[ConflictError]
-        response = await handler(None, exc)
-        assert response.status_code == 409
-        body = response.body.decode()
-        assert "CONFLICT" in body
-
-    @pytest.mark.asyncio
-    async def test_conflict_without_message(self, app, client: AsyncClient):
-        handler = app.exception_handlers[ConflictError]
-        response = await handler(None, ConflictError())
+class TestConflictHandler:
+    def test_returns_409(self, client: TestClient):
+        response = client.get("/test/conflict")
         assert response.status_code == 409
 
+    def test_returns_detail(self, client: TestClient):
+        response = client.get("/test/conflict")
+        assert response.json()["detail"] == "Resource conflict"
 
-class TestGenericDomainErrorHandler:
-    @pytest.mark.asyncio
-    async def test_returns_400_json(self, app, client: AsyncClient):
-        exc = DomainError("something broke")
-        handler = app.exception_handlers[DomainError]
-        response = await handler(None, exc)
-        assert response.status_code == 400
-        body = response.body.decode()
-        assert "DOMAIN_ERROR" in body
+    def test_returns_conflict_code(self, client: TestClient):
+        response = client.get("/test/conflict")
+        assert response.json()["code"] == "CONFLICT"
 
-    @pytest.mark.asyncio
-    async def test_generic_catch_all(self, app, client: AsyncClient):
-        handler = app.exception_handlers[DomainError]
-        response = await handler(None, DomainError("unknown"))
+
+class TestDomainErrorHandler:
+    def test_returns_400(self, client: TestClient):
+        response = client.get("/test/domain-error")
         assert response.status_code == 400
+
+    def test_returns_detail(self, client: TestClient):
+        response = client.get("/test/domain-error")
+        assert response.json()["detail"] == "Generic domain error"
+
+    def test_returns_domain_error_code(self, client: TestClient):
+        response = client.get("/test/domain-error")
+        assert response.json()["code"] == "DOMAIN_ERROR"

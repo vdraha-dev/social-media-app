@@ -1,98 +1,185 @@
-from unittest.mock import AsyncMock
+from datetime import datetime
+from uuid import UUID
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
+from pytz import UTC
+from sqlalchemy import String, text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import Mapped, mapped_column
 
-from app.shared.infrastructure.database import (
-    Base,
-    UnitOfWork,
-    get_session,
-    get_uow,
-)
+from app.shared.infrastructure.database import Base, UnitOfWork, init_db
+from tests.integration.conftest import TEST_DATABASE_URL
 
 
-class TestUnitOfWorkTransaction:
-    @pytest.mark.asyncio
-    async def test_aenter_returns_uow(self):
-        session = AsyncMock(spec=AsyncSession)
-        uow = UnitOfWork(session)
-        result = await uow.__aenter__()
-        assert result is uow
+class TestModel(Base):
+    __test__ = False
+    __tablename__ = "test_entities"
 
-    @pytest.mark.asyncio
-    async def test_exit_commits_on_success(self):
-        session = AsyncMock(spec=AsyncSession)
-        uow = UnitOfWork(session)
-        await uow.__aexit__(None, None, None)
-        session.commit.assert_awaited_once()
-        session.close.assert_awaited_once()
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    @pytest.mark.asyncio
-    async def test_exit_rolls_back_on_error(self):
-        session = AsyncMock(spec=AsyncSession)
-        uow = UnitOfWork(session)
-        await uow.__aexit__(ValueError, ValueError("err"), None)
-        session.rollback.assert_awaited_once()
-        session.close.assert_awaited_once()
-        session.commit.assert_not_called()
 
-    @pytest.mark.asyncio
-    async def test_commit_and_rollback_delegate_to_session(self):
-        session = AsyncMock(spec=AsyncSession)
-        uow = UnitOfWork(session)
+class TestInitDb:
+    def test_init_db_creates_database_and_is_idempotent(self, db_settings: None):
+        init_db()
+        init_db()
 
-        await uow.commit()
-        session.commit.assert_awaited_once()
 
-        await uow.rollback()
-        session.rollback.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    async def test_context_manager_commit_on_success(self):
-        session = AsyncMock(spec=AsyncSession)
-        async with UnitOfWork(session):
-            pass
-        session.commit.assert_awaited_once()
-        session.close.assert_awaited_once()
-
-    @pytest.mark.asyncio
-    async def test_context_manager_rollback_on_error(self):
-        session = AsyncMock(spec=AsyncSession)
-        with pytest.raises(RuntimeError):
-            async with UnitOfWork(session):
-                raise RuntimeError("fail")
-        session.rollback.assert_awaited_once()
-        session.close.assert_awaited_once()
+class TestEngineConnection:
+    async def test_engine_connects(self, db_setup: None):
+        engine = create_async_engine(TEST_DATABASE_URL)
+        async with engine.connect() as conn:
+            result = await conn.execute(text("SELECT 1 AS value"))
+            row = result.one()
+            assert row.value == 1
+        await engine.dispose()
 
 
 class TestBaseModel:
-    def test_base_has_id_column(self):
-        assert hasattr(Base, "id")
+    async def test_create_and_select(self, session: AsyncSession):
+        model = TestModel(name="test-entity")
+        session.add(model)
+        await session.commit()
 
-    def test_base_has_created_at_column(self):
-        assert hasattr(Base, "created_at")
+        result = await session.execute(
+            text("SELECT name FROM test_entities WHERE id = :id"),
+            {"id": model.id},
+        )
+        row = result.one()
+        assert row.name == "test-entity"
 
-    def test_base_has_updated_at_column(self):
-        assert hasattr(Base, "updated_at")
+    async def test_auto_generates_uuid(self, session: AsyncSession):
+        model = TestModel(name="uuid-test")
+        session.add(model)
+        await session.commit()
 
-    def test_tablename_not_set_on_base(self):
-        assert not hasattr(Base, "__tablename__")
+        assert isinstance(model.id, UUID)
+
+    async def test_uuid_is_unique_per_instance(self, session: AsyncSession):
+        model_a = TestModel(name="uuid-a")
+        model_b = TestModel(name="uuid-b")
+        session.add_all([model_a, model_b])
+        await session.commit()
+
+        assert model_a.id != model_b.id
+
+    async def test_auto_generates_timestamps(self, session: AsyncSession):
+        model = TestModel(name="timestamps-test")
+        session.add(model)
+        await session.commit()
+
+        assert model.created_at is not None
+        assert model.updated_at is not None
+        assert model.created_at.tzinfo is not None
+        assert model.updated_at.tzinfo is not None
+
+    async def test_created_at_and_updated_at_are_on_creation(
+        self, session: AsyncSession
+    ):
+        before = datetime.now(UTC)
+        model = TestModel(name="creation-time")
+        session.add(model)
+        await session.commit()
+        after = datetime.now(UTC)
+
+        created = model.created_at.replace(tzinfo=UTC)
+        updated = model.updated_at.replace(tzinfo=UTC)
+
+        assert before <= created <= after
+        assert before <= updated <= after
+
+    async def test_updated_at_updates_on_change(self, session: AsyncSession):
+        model = TestModel(name="update-test")
+        session.add(model)
+        await session.commit()
+
+        original_id = model.id
+
+        model.name = "updated-name"
+        await session.commit()
+
+        result = await session.execute(
+            text("SELECT updated_at FROM test_entities WHERE id = :id"),
+            {"id": original_id},
+        )
+        updated = result.scalar_one()
+        assert updated is not None
+
+    async def test_created_at_stays_same_on_update(self, session: AsyncSession):
+        model = TestModel(name="created-at-immutable")
+        session.add(model)
+        await session.commit()
+
+        original_created_at = model.created_at
+
+        model.name = "new-name"
+        await session.commit()
+
+        assert model.created_at == original_created_at
 
 
-class TestGetSession:
-    @pytest.mark.asyncio
-    async def test_get_session_yields_async_session(self):
-        gen = get_session()
-        session = await gen.__anext__()
-        assert isinstance(session, AsyncSession)
-        await gen.aclose()
+class TestAsyncSessionLocal:
+    async def test_session_factory_executes_query(self, db_setup: None):
+        engine = create_async_engine(TEST_DATABASE_URL)
+        maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+        async with maker() as sess:
+            result = await sess.execute(text("SELECT 42 AS answer"))
+            row = result.one()
+            assert row.answer == 42
+
+        await engine.dispose()
 
 
-class TestGetUow:
-    @pytest.mark.asyncio
-    async def test_get_uow_yields(self):
-        gen = get_uow()
-        try:
-            await gen.__anext__()
-        except StopAsyncIteration:
-            pass
+class TestUnitOfWork:
+    async def test_commit(self, db_setup: None):
+        engine = create_async_engine(TEST_DATABASE_URL)
+        maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        session = maker()
+
+        async with UnitOfWork(session):
+            model = TestModel(name="uow-commit")
+            session.add(model)
+
+        maker_check = async_sessionmaker(engine, class_=AsyncSession)
+        async with maker_check() as check_session:
+            result = await check_session.execute(
+                text("SELECT name FROM test_entities WHERE name = 'uow-commit'")
+            )
+            row = result.one()
+            assert row.name == "uow-commit"
+
+        await engine.dispose()
+
+    async def test_rollback_on_exception(self, db_setup: None):
+        engine = create_async_engine(TEST_DATABASE_URL)
+        maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        session = maker()
+
+        with pytest.raises(RuntimeError):
+            async with UnitOfWork(session):
+                model = TestModel(name="uow-rollback")
+                session.add(model)
+                raise RuntimeError("test error")
+
+        maker_check = async_sessionmaker(engine, class_=AsyncSession)
+        async with maker_check() as check_session:
+            result = await check_session.execute(
+                text("SELECT COUNT(*) FROM test_entities WHERE name = 'uow-rollback'")
+            )
+            count = result.scalar()
+            assert count == 0
+
+        await engine.dispose()
+
+    async def test_session_has_no_pending_changes_after_exit(self, db_setup: None):
+        engine = create_async_engine(TEST_DATABASE_URL)
+        maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        session = maker()
+
+        async with UnitOfWork(session):
+            model = TestModel(name="clean-exit")
+            session.add(model)
+
+        assert model not in session.new
+        assert len(session.new) == 0
+        await engine.dispose()

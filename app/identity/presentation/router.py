@@ -1,34 +1,36 @@
 from fastapi import APIRouter, Depends
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.identity.application.dto import (
+from app.identity.presentation.dto import (
     LoginRequest,
     RegisterUserRequest,
     TokenResponse,
     UserResponse,
 )
-from app.identity.application.handlers import (
-    LoginHandler,
-    LogoutHandler,
-    RegisterUserhandler,
-    VerifyUserByTokenHandler,
+from app.identity.application.use_cases import (
+    AuthenticateUserByTokenUseCase,
+    LoginUseCase,
+    LogoutUseCase,
+    RegisterUserUseCase,
 )
 from app.identity.domain.entities import User
+from app.identity.domain.value_objects import HashedPassword, Role, RoleEnum, UserName
 from app.identity.infrastructure.repository import AccessTokenRepository, UserRepository
 from app.identity.infrastructure.security import PasswordHasher, TokenService
-from app.shared.infrastructure.database import get_uow
+from app.identity.presentation.dependencies import get_current_user_token
+from app.shared.domain.value_objects import Email
+from app.shared.infrastructure.database import UnitOfWork, get_uow
 
-auth = APIRouter(prefix="/auth")
-
-bearer_scheme = HTTPBearer()
-
-
-async def register_handler(uow=Depends(get_uow)):
-    return RegisterUserhandler(UserRepository(uow.session), PasswordHasher())
+auth = APIRouter(prefix="/auth", tags=["authentication"])
 
 
-async def login_handler(uow=Depends(get_uow)):
-    return LoginHandler(
+async def register_dependency(
+    uow: UnitOfWork = Depends(get_uow),
+) -> RegisterUserUseCase:
+    return RegisterUserUseCase(UserRepository(uow.session), PasswordHasher())
+
+
+async def login_dependency(uow: UnitOfWork = Depends(get_uow)) -> LoginUseCase:
+    return LoginUseCase(
         UserRepository(uow.session),
         AccessTokenRepository(uow.session),
         PasswordHasher(),
@@ -36,12 +38,14 @@ async def login_handler(uow=Depends(get_uow)):
     )
 
 
-async def logout_handler(uow=Depends(get_uow)):
-    return LogoutHandler(AccessTokenRepository(uow.session))
+async def logout_dependency(uow: UnitOfWork = Depends(get_uow)) -> LogoutUseCase:
+    return LogoutUseCase(AccessTokenRepository(uow.session))
 
 
-async def verify_user_handler(uow=Depends(get_uow)):
-    return VerifyUserByTokenHandler(
+async def auth_user_dependency(
+    uow: UnitOfWork = Depends(get_uow),
+) -> AuthenticateUserByTokenUseCase:
+    return AuthenticateUserByTokenUseCase(
         UserRepository(uow.session),
         AccessTokenRepository(uow.session),
         TokenService(),
@@ -49,31 +53,54 @@ async def verify_user_handler(uow=Depends(get_uow)):
 
 
 @auth.post("/register", response_model=UserResponse, status_code=201)
-async def register(request: RegisterUserRequest, handler=Depends(register_handler)):
-    return await handler.handle(request)
+async def register(
+    request: RegisterUserRequest,
+    use_case: RegisterUserUseCase = Depends(register_dependency),
+):
+    user = User(
+        username=UserName(request.username),
+        email=Email(request.email),
+        password=HashedPassword(value="0"),
+        role=Role(RoleEnum.User),
+    )
+    await use_case.execute(user, request.password)
+
+    return UserResponse(
+        id=user.id,
+        username=str(user.username),
+        email=str(user.email),
+        role=str(user.role),
+    )
 
 
 @auth.post("/login", response_model=TokenResponse, status_code=200)
-async def login(request: LoginRequest, handler=Depends(login_handler)):
-    return await handler.handle(request)
+async def login(
+    request: LoginRequest, use_case: LoginUseCase = Depends(login_dependency)
+):
+    token = await use_case.execute(Email(request.email), request.password)
+
+    return TokenResponse(
+        access_token=token,
+        token_type="Bearer",
+    )
 
 
 @auth.post("/logout", status_code=204)
 async def logout(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    verify_handler=Depends(verify_user_handler),
-    logout_handler=Depends(logout_handler),
+    current_user_token: str = Depends(get_current_user_token),
+    auth_use_case: AuthenticateUserByTokenUseCase = Depends(auth_user_dependency),
+    logout_use_case: LogoutUseCase = Depends(logout_dependency),
 ):
-    user = await verify_handler.handle(credentials.credentials)
-    await logout_handler.handle(user.id)
+    user = await auth_use_case.execute(current_user_token)
+    await logout_use_case.execute(user.id)
 
 
 @auth.get("/me", response_model=UserResponse, status_code=200)
 async def get_me(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    verify_handler=Depends(verify_user_handler),
+    current_user_token: str = Depends(get_current_user_token),
+    auth_use_case: AuthenticateUserByTokenUseCase = Depends(auth_user_dependency),
 ):
-    user: User = await verify_handler.handle(credentials.credentials)
+    user = await auth_use_case.execute(current_user_token)
     return UserResponse(
         id=user.id,
         username=str(user.username),

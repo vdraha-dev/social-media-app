@@ -1,60 +1,46 @@
+from dataclasses import FrozenInstanceError
+
 import pytest
 
-from app.identity.domain.value_objects import (
-    HashedPassword,
-    Role,
-    RoleEnum,
-    UserName,
-)
+from app.identity.domain.value_objects import HashedPassword, Role, RoleEnum, UserName
 
 
 class TestHashedPassword:
-    def test_initializes(self):
-        hp = HashedPassword("$2b$12$abc123")
-        assert hp.value == "$2b$12$abc123"
+    def test_create_valid(self):
+        hashed = HashedPassword(value="$argon2id$v=19$m=65536,t=3,p=4$hash")
+        assert hashed.value == "$argon2id$v=19$m=65536,t=3,p=4$hash"
 
-    def test_str(self):
-        hp = HashedPassword("secret_hash")
-        assert str(hp) == "secret_hash"
+    def test_str_returns_value(self):
+        hashed = HashedPassword(value="my_hash")
+        assert str(hashed) == "my_hash"
 
-    def test_immutable(self):
-        hp = HashedPassword("hash")
-        with pytest.raises(AttributeError):
-            hp.value = "new_hash"
+    def test_frozen(self):
+        hashed = HashedPassword(value="hash")
+        with pytest.raises(FrozenInstanceError):
+            hashed.value = "new"  # pyright: ignore
 
-    def test_equality(self):
-        h1 = HashedPassword("hash")
-        h2 = HashedPassword("hash")
-        assert h1 == h2
-
-    def test_inequality(self):
-        h1 = HashedPassword("hash1")
-        h2 = HashedPassword("hash2")
-        assert h1 != h2
-
-    def test_validation_not_auto_called(self):
-        hp = HashedPassword("")
-        assert hp.value == ""
+    def test_empty_value_raise(self):
+        with pytest.raises(ValueError, match="Password cannot be empty"):
+            HashedPassword(value="")
 
 
 class TestUserName:
-    def test_initializes(self):
-        un = UserName("john_doe")
-        assert un.value == "john_doe"
+    def test_create_valid(self):
+        name = UserName(value="alice")
+        assert name.value == "alice"
 
-    def test_str(self):
-        un = UserName("john_doe")
-        assert str(un) == "john_doe"
+    def test_str_returns_value(self):
+        name = UserName(value="bob")
+        assert str(name) == "bob"
 
-    def test_immutable(self):
-        un = UserName("john")
-        with pytest.raises(AttributeError):
-            un.value = "jane"
+    def test_frozen(self):
+        name = UserName(value="alice")
+        with pytest.raises(FrozenInstanceError):
+            name.value = "bob"  # pyright: ignore
 
-    def test_equality(self):
-        u1 = UserName("alice")
-        u2 = UserName("alice")
-        assert u1 == u2
+    def test_empty_value_raise(self):
+        with pytest.raises(ValueError, match="Username cannot be empty"):
+            UserName(value="")
 
 
 class TestRoleEnum:
@@ -64,40 +50,36 @@ class TestRoleEnum:
     def test_admin_value(self):
         assert RoleEnum.Admin == "admin"
 
+    def test_members(self):
+        assert list(RoleEnum) == [RoleEnum.User, RoleEnum.Admin]
+
 
 class TestRole:
-    def test_default_role_is_user(self):
+    def test_default_value_is_user(self):
         role = Role()
         assert role.value == RoleEnum.User
 
-    def test_custom_role(self):
-        role = Role(RoleEnum.Admin)
+    def test_create_admin(self):
+        role = Role(value=RoleEnum.Admin)
         assert role.value == RoleEnum.Admin
+
+    def test_is_admin_true_for_admin(self):
+        role = Role(value=RoleEnum.Admin)
+        assert role.is_admin is True
 
     def test_is_admin_false_for_user(self):
         role = Role()
         assert role.is_admin is False
 
-    def test_is_admin_true_for_admin(self):
-        role = Role(RoleEnum.Admin)
-        assert role.is_admin is True
-
     def test_str_for_user(self):
-        assert str(Role()) == "user"
+        role = Role()
+        assert str(role) == "user"
 
     def test_str_for_admin(self):
-        assert str(Role(RoleEnum.Admin)) == "admin"
+        role = Role(value=RoleEnum.Admin)
+        assert str(role) == "admin"
 
-    def test_immutable(self):
+    def test_frozen(self):
         role = Role()
-        with pytest.raises(AttributeError):
-            role.value = RoleEnum.Admin
-
-    def test_equality(self):
-        r1 = Role()
-        r2 = Role()
-        assert r1 == r2
-
-    def test_validate_raises_on_call_with_invalid(self):
-        with pytest.raises(ValueError, match="Invalid role type"):
-            Role("invalid")
+        with pytest.raises(FrozenInstanceError):
+            role.value = RoleEnum.Admin  # pyright: ignore

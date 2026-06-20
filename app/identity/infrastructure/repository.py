@@ -18,8 +18,8 @@ class UserRepository(IUserRepository):
         user = await self.session.get(UserModel, user_id)
         return self._to_entity(user) if user else None
 
-    async def get_by_email(self, email: str) -> User | None:
-        stmt = select(UserModel).where(UserModel.email == email)
+    async def get_by_email(self, email: Email) -> User | None:
+        stmt = select(UserModel).where(UserModel.email == str(email))
         result = await self.session.execute(stmt)
         user = result.scalar_one_or_none()
         return self._to_entity(user) if user else None
@@ -30,34 +30,30 @@ class UserRepository(IUserRepository):
             user_m.username = str(user.username)
             user_m.email = str(user.email)
             user_m.password_hash = str(user.password)
-            user_m.role = str(user.role)
+            user_m.role = user.role.value
             user_m.last_login = user.last_login
             user_m.updated_at = user.updated_at
         else:
             self.session.add(self._to_model(user))
         await self.session.flush()
 
-    async def exists_by_email(self, email: str) -> bool:
-        stmt = select(UserModel).where(UserModel.email == email)
+    async def exists_by_email(self, email: Email) -> bool:
+        stmt = select(UserModel).where(UserModel.email == str(email))
         result = await self.session.execute(stmt)
         user = result.scalar_one_or_none()
         return user is not None
 
     def _to_entity(self, m: UserModel) -> User:
         e = User(
-            # id=m.id,
+            id=m.id,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
             username=UserName(m.username),
             email=Email(m.email),
             password=HashedPassword(m.password_hash),
             role=Role(m.role),
             last_login=m.last_login,
-            # created_at=m.created_at,
-            # updated_at=m.updated_at,
         )
-
-        e.id = m.id
-        e.created_at = m.created_at
-        e.updated_at = m.updated_at
 
         return e
 
@@ -110,16 +106,13 @@ class AccessTokenRepository(IAccessTokenRepository):
 
     def _to_entity(self, m: AccessTokenModel) -> AccessToken:
         token = AccessToken(
-            # id=m.id,
-            # created_at=m.created_at,
-            # updated_at=m.updated_at,
+            id=m.id,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
             token=m.token,
             user_id=m.user_id,
             expired_at=m.expired_at,
             blacklisted=m.blacklisted,
         )
-        token.id = m.id
-        token.created_at = m.created_at
-        token.updated_at = m.updated_at
 
         return token

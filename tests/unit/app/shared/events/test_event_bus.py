@@ -1,135 +1,126 @@
-from unittest.mock import AsyncMock, MagicMock
+import asyncio
+from datetime import datetime
+from unittest.mock import AsyncMock
+from uuid import UUID
 
 import pytest
+from pytz import UTC
 
-from app.shared.events.event_bus import DomainEvent, EventBus, event_bus
+from app.shared.events.event_bus import DomainEvent, EventBus
+from app.shared.utils import uuid_gen
+
+
+class MyTestEvent(DomainEvent):
+    __slots__ = ()
+
+
+class OtherEvent(DomainEvent):
+    __slots__ = ()
 
 
 class TestDomainEvent:
-    def test_event_id_is_field_descriptor_not_uuid(self):
-        from dataclasses import Field
+    def test_event_id_is_uuid(self):
+        event = MyTestEvent()
+        assert isinstance(event.event_id, UUID)
 
-        e = DomainEvent()
-        assert isinstance(e.event_id, Field)
+    def test_occured_at_is_datetime_with_utc(self):
+        event = MyTestEvent()
+        assert isinstance(event.occured_at, datetime)
+        assert event.occured_at.tzinfo == UTC
 
-    def test_occurred_at_is_field_descriptor(self):
-        from dataclasses import Field
+    def test_unique_ids(self):
+        e1 = MyTestEvent()
+        e2 = MyTestEvent()
+        assert e1.event_id != e2.event_id
 
-        e = DomainEvent()
-        assert isinstance(e.occurred_at, Field)
+    def test_occured_at_close_to_now(self):
+        before = datetime.now(UTC)
+        event = MyTestEvent()
+        after = datetime.now(UTC)
+        assert before <= event.occured_at <= after
 
-    def test_can_create_instance(self):
-        e = DomainEvent()
-        assert isinstance(e, DomainEvent)
+    def test_event_id_has_no_setter(self):
+        event = MyTestEvent()
+        with pytest.raises(AttributeError):
+            event.event_id = uuid_gen()  # pyright: ignore
 
-    def test_two_instances_have_same_field_descriptors(self):
-        e1 = DomainEvent()
-        e2 = DomainEvent()
-        assert e1.event_id is e2.event_id
+    def test_occured_at_has_no_setter(self):
+        event = MyTestEvent()
+        with pytest.raises(AttributeError):
+            event.occured_at = datetime.now(UTC)  # pyright: ignore
+
+    def test_cannot_set_arbitrary_attrs(self):
+        event = MyTestEvent()
+        with pytest.raises(AttributeError):
+            event.foo = "bar"  # pyright: ignore
 
 
-class TestEventBus:
+class TestEventBusSubscribe:
     def test_subscribe_adds_handler(self):
         bus = EventBus()
         handler = AsyncMock()
-        bus.subscribe(DomainEvent, handler)
-        assert handler in bus._handlers[DomainEvent]
+        bus.subscribe(MyTestEvent, handler)
+        assert handler in bus._handlers[MyTestEvent]  # pyright: ignore
 
-    def test_subscribe_multiple_handlers(self):
+
+class TestEventBusPublish:
+    async def test_publish_no_handlers(self):
         bus = EventBus()
-        h1 = AsyncMock()
-        h2 = AsyncMock()
-        bus.subscribe(DomainEvent, h1)
-        bus.subscribe(DomainEvent, h2)
-        assert len(bus._handlers[DomainEvent]) == 2
+        await bus.publish(MyTestEvent())
 
-    @pytest.mark.asyncio
     async def test_publish_calls_handler(self):
         bus = EventBus()
-        handler = MagicMock()
-        bus.subscribe(DomainEvent, handler)
-        event = DomainEvent()
+        handler = AsyncMock()
+        bus.subscribe(MyTestEvent, handler)
+        event = MyTestEvent()
         await bus.publish(event)
-        handler.assert_called_once()
+        handler.assert_awaited_once_with(event)
 
-    @pytest.mark.asyncio
-    async def test_publish_no_handlers_does_nothing(self):
+    async def test_publish_calls_all_handlers(self):
         bus = EventBus()
-        event = DomainEvent()
+        handler1 = AsyncMock()
+        handler2 = AsyncMock()
+        bus.subscribe(MyTestEvent, handler1)
+        bus.subscribe(MyTestEvent, handler2)
+        event = MyTestEvent()
         await bus.publish(event)
+        handler1.assert_awaited_once_with(event)
+        handler2.assert_awaited_once_with(event)
 
-    @pytest.mark.asyncio
-    async def test_publish_multiple_handlers(self):
-        bus = EventBus()
-        h1 = MagicMock()
-        h2 = MagicMock()
-        bus.subscribe(DomainEvent, h1)
-        bus.subscribe(DomainEvent, h2)
-        event = DomainEvent()
-        await bus.publish(event)
-        h1.assert_called_once()
-        h2.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_publish_only_calls_subscribed_type(self):
+    async def test_publish_swallows_exception(self):
         bus = EventBus()
 
-        class EventA(DomainEvent):
-            pass
+        async def failing_handler(event: DomainEvent):
+            raise ValueError("oops")
 
-        class EventB(DomainEvent):
-            pass
+        good_handler = AsyncMock()
+        bus.subscribe(MyTestEvent, failing_handler)
+        bus.subscribe(MyTestEvent, good_handler)
+        await bus.publish(MyTestEvent())
+        good_handler.assert_awaited_once()
 
-        handler_a = MagicMock()
-        handler_b = MagicMock()
-        bus.subscribe(EventA, handler_a)
-        bus.subscribe(EventB, handler_b)
-
-        await bus.publish(EventA())
-        handler_a.assert_called_once()
-        handler_b.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_publish_with_return_exceptions_does_not_raise(self):
+    async def test_publish_only_correct_type(self):
         bus = EventBus()
+        handler = AsyncMock()
+        bus.subscribe(MyTestEvent, handler)
+        await bus.publish(OtherEvent())
+        handler.assert_not_awaited()
 
-        class EventA(DomainEvent):
-            pass
 
-        handler = MagicMock(side_effect=ValueError("fail"))
-        bus.subscribe(EventA, handler)
-
-        await bus.publish(EventA())
-        handler.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_save_handle_silently_catches_exception(self):
+class TestEventBusConcurrency:
+    async def test_handlers_run_concurrently(self):
         bus = EventBus()
+        results: list[str] = []
 
-        class EventA(DomainEvent):
-            pass
+        async def slow_handler(event: DomainEvent):
+            await asyncio.sleep(0.05)
+            results.append("slow")
 
-        failing_handler = MagicMock(side_effect=RuntimeError("boom"))
-        event = EventA()
-        await bus._save_handle(failing_handler, event)
-        failing_handler.assert_called_once()
+        async def fast_handler(event: DomainEvent):
+            results.append("fast")
 
-    @pytest.mark.asyncio
-    async def test_save_handle_calls_handler(self):
-        bus = EventBus()
-
-        class EventA(DomainEvent):
-            pass
-
-        handler = MagicMock()
-        event = EventA()
-        await bus._save_handle(handler, event)
-        handler.assert_called_once_with(event)
-
-    def test_singleton_event_bus(self):
-        assert isinstance(event_bus, EventBus)
-
-    def test_singleton_is_same_instance(self):
-        from app.shared.events.event_bus import event_bus as eb2
-
-        assert event_bus is eb2
+        bus.subscribe(MyTestEvent, slow_handler)
+        bus.subscribe(MyTestEvent, fast_handler)
+        await bus.publish(MyTestEvent())
+        assert "fast" in results
+        assert "slow" in results
