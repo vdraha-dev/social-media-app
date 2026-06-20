@@ -3,7 +3,7 @@ from uuid import UUID
 import pytest
 from pydantic import ValidationError
 
-from app.identity.application.dto import (
+from app.identity.presentation.dto import (
     LoginRequest,
     RegisterUserRequest,
     TokenResponse,

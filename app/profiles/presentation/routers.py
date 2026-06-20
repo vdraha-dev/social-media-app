@@ -10,7 +10,7 @@ from app.identity.presentation.router import (
     TokenService,
     UserRepository,
 )
-from app.profiles.application.dto import ProfileResponse, UpdateProfileRequest
+from app.profiles.presentation.dto import ProfileResponse, UpdateProfileRequest
 from app.profiles.application.use_cases import (
     GetUserProfileByUserIdUseCase,
     UpdateUserProfileUseCase,

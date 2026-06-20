@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from app.identity.application.dto import (
+from app.identity.presentation.dto import (
     LoginRequest,
     RegisterUserRequest,
     TokenResponse,
