@@ -47,7 +47,7 @@ def _truncate_all(engine: Engine):
             conn.execute(text(f"TRUNCATE TABLE {table_list} CASCADE"))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def db_setup(db_settings: None):
     from app.shared.infrastructure.database import init_db
 
