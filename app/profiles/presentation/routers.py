@@ -10,13 +10,13 @@ from app.identity.presentation.router import (
     TokenService,
     UserRepository,
 )
-from app.profiles.presentation.dto import ProfileResponse, UpdateProfileRequest
 from app.profiles.application.use_cases import (
     GetUserProfileByUserIdUseCase,
     UpdateUserProfileUseCase,
 )
 from app.profiles.domain.value_objects import Bio, DisplayedName
 from app.profiles.infrastructure.repositories import ProfilesRepository
+from app.profiles.presentation.dto import ProfileResponse, UpdateProfileRequest
 from app.shared.domain.value_objects import Url
 from app.shared.infrastructure.database import UnitOfWork, get_uow
 

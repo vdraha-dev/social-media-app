@@ -17,19 +17,19 @@ def app():
     register_exception_handlers(application)
 
     @application.get("/test/token-expired")
-    async def raise_token_expired(): # pyright: ignore
+    async def raise_token_expired():  # pyright: ignore
         raise TokenExpiredError("Token expired")
 
     @application.get("/test/invalid-token")
-    async def raise_invalid_token(): # pyright: ignore
+    async def raise_invalid_token():  # pyright: ignore
         raise InvalidTokenError("Invalid token")
 
     @application.get("/test/user-already-exists")
-    async def raise_user_already_exists(): # pyright: ignore
+    async def raise_user_already_exists():  # pyright: ignore
         raise UserAlreadyExistsError("User already exists with this email")
 
     @application.get("/test/invalid-credentials")
-    async def raise_invalid_credentials(): # pyright: ignore
+    async def raise_invalid_credentials():  # pyright: ignore
         raise InvalidCredentialsError("Invalid credentials. Wrong email or password.")
 
     return application

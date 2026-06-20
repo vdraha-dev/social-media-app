@@ -1,11 +1,5 @@
 from fastapi import APIRouter, Depends
 
-from app.identity.presentation.dto import (
-    LoginRequest,
-    RegisterUserRequest,
-    TokenResponse,
-    UserResponse,
-)
 from app.identity.application.use_cases import (
     AuthenticateUserByTokenUseCase,
     LoginUseCase,
@@ -17,6 +11,12 @@ from app.identity.domain.value_objects import HashedPassword, Role, RoleEnum, Us
 from app.identity.infrastructure.repository import AccessTokenRepository, UserRepository
 from app.identity.infrastructure.security import PasswordHasher, TokenService
 from app.identity.presentation.dependencies import get_current_user_token
+from app.identity.presentation.dto import (
+    LoginRequest,
+    RegisterUserRequest,
+    TokenResponse,
+    UserResponse,
+)
 from app.shared.domain.value_objects import Email
 from app.shared.infrastructure.database import UnitOfWork, get_uow
 
