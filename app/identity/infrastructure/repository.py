@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.identity.domain.entities import AccessToken, User
 from app.identity.domain.service import IAccessTokenRepository, IUserRepository
-from app.identity.domain.value_objects import HashedPassword, Role, UserName
 from app.identity.infrastructure.models import AccessTokenModel, UserModel
 from app.shared.domain.value_objects import Email
 
@@ -27,10 +26,10 @@ class UserRepository(IUserRepository):
     async def save(self, user: User):
         user_m = await self.session.get(UserModel, user.id)
         if user_m:
-            user_m.username = str(user.username)
-            user_m.email = str(user.email)
-            user_m.password_hash = str(user.password)
-            user_m.role = user.role.value
+            user_m.username = user.username
+            user_m.email = user.email
+            user_m.password_hash = user.password
+            user_m.role = user.role
             user_m.last_login = user.last_login
             user_m.updated_at = user.updated_at
         else:
@@ -48,10 +47,10 @@ class UserRepository(IUserRepository):
             id=m.id,
             created_at=m.created_at,
             updated_at=m.updated_at,
-            username=UserName(m.username),
-            email=Email(m.email),
-            password=HashedPassword(m.password_hash),
-            role=Role(m.role),
+            username=m.username,
+            email=m.email,
+            password=m.password_hash,
+            role=m.role,
             last_login=m.last_login,
         )
 
@@ -60,10 +59,10 @@ class UserRepository(IUserRepository):
     def _to_model(self, e: User) -> UserModel:
         return UserModel(
             id=e.id,
-            username=str(e.username),
-            email=str(e.email),
-            password_hash=str(e.password),
-            role=str(e.role),
+            username=e.username,
+            email=e.email,
+            password_hash=e.password,
+            role=e.role,
             last_login=e.last_login,
             created_at=e.created_at,
             updated_at=e.updated_at,

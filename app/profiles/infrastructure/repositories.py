@@ -5,9 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.profiles.domain.entities import UserProfile
 from app.profiles.domain.repositories import IProfileRepository
-from app.profiles.domain.value_objects import Bio, DisplayedName, SocialLink
 from app.profiles.infrastructure.models import UserProfileModel
-from app.shared.domain.value_objects import Url
 
 
 class ProfilesRepository(IProfileRepository):
@@ -39,9 +37,9 @@ class ProfilesRepository(IProfileRepository):
             updated_at=profile.updated_at,
             user_id=profile.user_id,
             displayed_name=profile.displayed_name,
-            avatar_url=str(profile.avatar_url) if profile.avatar_url else None,
-            bio=str(profile.bio) if profile.bio else None,
-            social_links=[link.to_dict() for link in profile.social_links],
+            avatar_url=profile.avatar_url,
+            bio=profile.bio,
+            social_links=profile.social_links,
         )
 
     def _to_entity(self, model: UserProfileModel) -> UserProfile:
@@ -50,8 +48,8 @@ class ProfilesRepository(IProfileRepository):
             created_at=model.created_at,
             updated_at=model.updated_at,
             user_id=model.user_id,
-            displayed_name=DisplayedName(model.displayed_name),
-            avatar_url=Url(model.avatar_url) if model.avatar_url else None,
-            bio=Bio(model.bio) if model.bio else None,
-            social_links=[SocialLink.from_dict(link) for link in model.social_links],
+            displayed_name=model.displayed_name,
+            avatar_url=model.avatar_url,
+            bio=model.bio,
+            social_links=model.social_links,
         )

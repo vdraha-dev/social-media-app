@@ -2,21 +2,25 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String
-from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.identity.domain.value_objects import RoleEnum
+from app.identity.domain.value_objects import HashedPassword, Role, UserName
+from app.identity.infrastructure.types import HashedPasswordType, RoleType, UserNameType
+from app.shared.domain.value_objects import Email
 from app.shared.infrastructure.database import Base
+from app.shared.infrastructure.types import EmailType
 
 
 class UserModel(Base):
     __tablename__ = "users"
 
-    username: Mapped[str] = mapped_column(String(50), nullable=False)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[RoleEnum] = mapped_column(SqlEnum(RoleEnum), default=RoleEnum.User)
+    username: Mapped[UserName] = mapped_column(UserNameType(), nullable=False)
+    email: Mapped[Email] = mapped_column(EmailType(), unique=True, nullable=False)
+    password_hash: Mapped[HashedPassword] = mapped_column(
+        HashedPasswordType(), nullable=False
+    )
+    role: Mapped[Role] = mapped_column(RoleType, default=Role())
     last_login: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
