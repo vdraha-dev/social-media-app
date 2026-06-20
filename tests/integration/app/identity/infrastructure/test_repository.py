@@ -253,9 +253,7 @@ class TestAccessTokenRepositoryBlacklistAllForUser:
         assert len(tokens) == 2
         assert all(t.blacklisted for t in tokens)
 
-    async def test_does_not_blacklist_other_users_tokens(
-        self, session: AsyncSession
-    ):
+    async def test_does_not_blacklist_other_users_tokens(self, session: AsyncSession):
         user_a = UserModel(
             username="user-a",
             email="user-a@example.com",
