@@ -48,10 +48,10 @@ class TestRegisterUserUseCase:
         stmt = select(UserModel).where(UserModel.id == new_user.id)
         result = await session.execute(stmt)
         loaded = result.scalar_one()
-        assert loaded.username == "alice"
-        assert loaded.email == "alice@example.com"
-        assert loaded.password_hash != "raw"
-        assert loaded.role.value == "user"
+        assert loaded.username == UserName("alice")
+        assert loaded.email == Email("alice@example.com")
+        assert loaded.password_hash != HashedPassword("raw")
+        assert loaded.role == Role()
 
         mock_publish.assert_awaited_once()
         args, _ = mock_publish.call_args
@@ -60,9 +60,9 @@ class TestRegisterUserUseCase:
 
     async def test_register_user_already_exists(self, session: AsyncSession):
         user_m = UserModel(
-            username="existing",
-            email="existing@example.com",
-            password_hash="hash",
+            username=UserName("existing"),
+            email=Email("existing@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user_m)
         await session.flush()
@@ -88,9 +88,9 @@ class TestLoginUseCase:
         hashed = hasher.hash("correct_password")
 
         user_m = UserModel(
-            username="alice",
-            email="alice@example.com",
-            password_hash=str(hashed),
+            username=UserName("alice"),
+            email=Email("alice@example.com"),
+            password_hash=hashed,
         )
         session.add(user_m)
         await session.flush()
@@ -143,9 +143,9 @@ class TestLoginUseCase:
         hashed = hasher.hash("correct_password")
 
         user_m = UserModel(
-            username="alice",
-            email="alice@example.com",
-            password_hash=str(hashed),
+            username=UserName("alice"),
+            email=Email("alice@example.com"),
+            password_hash=hashed,
         )
         session.add(user_m)
         await session.flush()
@@ -162,9 +162,9 @@ class TestLoginUseCase:
 class TestLogoutUseCase:
     async def test_logout_success(self, session: AsyncSession):
         user_m = UserModel(
-            username="logout-user",
-            email="logout-user@example.com",
-            password_hash="hash",
+            username=UserName("logout-user"),
+            email=Email("logout-user@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user_m)
         await session.flush()
@@ -209,9 +209,9 @@ class TestAuthenticateUserByTokenUseCase:
     async def test_authenticate_success(self, session: AsyncSession):
         hasher = PasswordHasher()
         user_m = UserModel(
-            username="auth-user",
-            email="auth-user@example.com",
-            password_hash=str(hasher.hash("password")),
+            username=UserName("auth-user"),
+            email=Email("auth-user@example.com"),
+            password_hash=hasher.hash("password"),
         )
         session.add(user_m)
         await session.flush()
@@ -240,9 +240,9 @@ class TestAuthenticateUserByTokenUseCase:
 
     async def test_authenticate_blacklisted_token(self, session: AsyncSession):
         user_m = UserModel(
-            username="blacklisted-user",
-            email="blacklisted-user@example.com",
-            password_hash="hash",
+            username=UserName("blacklisted-user"),
+            email=Email("blacklisted-user@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user_m)
         await session.flush()

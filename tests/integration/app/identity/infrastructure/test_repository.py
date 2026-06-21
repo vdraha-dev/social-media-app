@@ -15,9 +15,9 @@ from app.shared.domain.value_objects import Email
 class TestUserRepositoryGetUserById:
     async def test_returns_user_when_found(self, session: AsyncSession):
         user_m = UserModel(
-            username="alice",
-            email="alice@example.com",
-            password_hash="hashed_pw",
+            username=UserName("alice"),
+            email=Email("alice@example.com"),
+            password_hash=HashedPassword("hashed_pw"),
         )
         session.add(user_m)
         await session.flush()
@@ -39,9 +39,9 @@ class TestUserRepositoryGetUserById:
 class TestUserRepositoryGetByEmail:
     async def test_returns_user_when_found(self, session: AsyncSession):
         user_m = UserModel(
-            username="bob",
-            email="bob@example.com",
-            password_hash="hashed_pw",
+            username=UserName("bob"),
+            email=Email("bob@example.com"),
+            password_hash=HashedPassword("hashed_pw"),
         )
         session.add(user_m)
         await session.flush()
@@ -74,15 +74,15 @@ class TestUserRepositorySave:
         stmt = select(UserModel).where(UserModel.id == user.id)
         result = await session.execute(stmt)
         loaded = result.scalar_one()
-        assert loaded.username == "charlie"
-        assert loaded.email == "charlie@example.com"
-        assert loaded.password_hash == "hash"
+        assert loaded.username == UserName("charlie")
+        assert loaded.email == Email("charlie@example.com")
+        assert loaded.password_hash == HashedPassword("hash")
 
     async def test_updates_existing_user(self, session: AsyncSession):
         user_m = UserModel(
-            username="old",
-            email="old@example.com",
-            password_hash="old_hash",
+            username=UserName("old"),
+            email=Email("old@example.com"),
+            password_hash=HashedPassword("old_hash"),
         )
         session.add(user_m)
         await session.flush()
@@ -103,15 +103,15 @@ class TestUserRepositorySave:
         stmt = select(UserModel).where(UserModel.id == user_m.id)
         result = await session.execute(stmt)
         loaded = result.scalar_one()
-        assert loaded.username == "new"
-        assert loaded.email == "new@example.com"
-        assert loaded.password_hash == "new_hash"
+        assert loaded.username == UserName("new")
+        assert loaded.email == Email("new@example.com")
+        assert loaded.password_hash == HashedPassword("new_hash")
 
     async def test_updates_role_and_last_login(self, session: AsyncSession):
         user_m = UserModel(
-            username="role-update",
-            email="role-update@example.com",
-            password_hash="hash",
+            username=UserName("role-update"),
+            email=Email("role-update@example.com"),
+            password_hash=HashedPassword("hash"),
             role=RoleEnum.User,
         )
         session.add(user_m)
@@ -135,16 +135,16 @@ class TestUserRepositorySave:
         stmt = select(UserModel).where(UserModel.id == user_m.id)
         result = await session.execute(stmt)
         loaded = result.scalar_one()
-        assert loaded.role == RoleEnum.Admin
+        assert loaded.role == Role(RoleEnum.Admin)
         assert loaded.last_login == now
 
 
 class TestUserRepositoryExistsByEmail:
     async def test_returns_true_when_exists(self, session: AsyncSession):
         user_m = UserModel(
-            username="exists-user",
-            email="exists@example.com",
-            password_hash="hash",
+            username=UserName("exists-user"),
+            email=Email("exists@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user_m)
         await session.flush()
@@ -162,9 +162,9 @@ class TestUserRepositoryExistsByEmail:
 class TestAccessTokenRepositoryGetByToken:
     async def test_returns_token_when_found(self, session: AsyncSession):
         user_m = UserModel(
-            username="token-owner",
-            email="token-owner@example.com",
-            password_hash="hash",
+            username=UserName("token-owner"),
+            email=Email("token-owner@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user_m)
         await session.flush()
@@ -195,9 +195,9 @@ class TestAccessTokenRepositoryGetByToken:
 class TestAccessTokenRepositorySave:
     async def test_adds_token_to_database(self, session: AsyncSession):
         user_m = UserModel(
-            username="token-save-user",
-            email="token-save-user@example.com",
-            password_hash="hash",
+            username=UserName("token-save-user"),
+            email=Email("token-save-user@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user_m)
         await session.flush()
@@ -222,9 +222,9 @@ class TestAccessTokenRepositorySave:
 class TestAccessTokenRepositoryBlacklistAllForUser:
     async def test_blacklists_all_tokens_for_user(self, session: AsyncSession):
         user_m = UserModel(
-            username="blacklist-user",
-            email="blacklist-user@example.com",
-            password_hash="hash",
+            username=UserName("blacklist-user"),
+            email=Email("blacklist-user@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user_m)
         await session.flush()
@@ -255,14 +255,14 @@ class TestAccessTokenRepositoryBlacklistAllForUser:
 
     async def test_does_not_blacklist_other_users_tokens(self, session: AsyncSession):
         user_a = UserModel(
-            username="user-a",
-            email="user-a@example.com",
-            password_hash="hash",
+            username=UserName("user-a"),
+            email=Email("user-a@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         user_b = UserModel(
-            username="user-b",
-            email="user-b@example.com",
-            password_hash="hash",
+            username=UserName("user-b"),
+            email=Email("user-b@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add_all([user_a, user_b])
         await session.flush()
