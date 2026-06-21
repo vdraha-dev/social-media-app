@@ -4,18 +4,18 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.identity.application.dto import TokenResponse, UserResponse
 from app.identity.application.use_cases import (
     AuthenticateUserByTokenUseCase,
+    GetUserInfoByTokenUseCase,
     LoginUseCase,
     LogoutUseCase,
     RegisterUserUseCase,
 )
-from app.identity.domain.entities import User
 from app.identity.domain.exceptions import (
     InvalidCredentialsError,
     UserAlreadyExistsError,
 )
-from app.identity.domain.value_objects import HashedPassword, Role, UserName
 from app.identity.presentation.dependencies import get_current_user_token
 from app.identity.presentation.exception_handlers import (
     register_exception_handlers,
@@ -26,8 +26,8 @@ from app.identity.presentation.router import (
     login_dependency,
     logout_dependency,
     register_dependency,
+    user_info_dependency,
 )
-from app.shared.domain.value_objects import Email
 from app.shared.utils import uuid_gen
 
 
@@ -54,6 +54,14 @@ class TestRegisterEndpoint:
         app.dependency_overrides.pop(register_dependency, None)
 
     def test_register_success(self, client: TestClient):
+        user_id = uuid_gen()
+        self.mock_use_case.execute.return_value = UserResponse(
+            id=user_id,
+            username="alice",
+            email="alice@example.com",
+            role="user",
+        )
+
         payload = {
             "username": "alice",
             "email": "alice@example.com",
@@ -64,7 +72,7 @@ class TestRegisterEndpoint:
 
         assert response.status_code == 201
         data = response.json()
-        assert "id" in data
+        assert data["id"] == str(user_id)
         assert data["username"] == "alice"
         assert data["email"] == "alice@example.com"
         assert data["role"] == "user"
@@ -96,7 +104,10 @@ class TestLoginEndpoint:
         app.dependency_overrides.pop(login_dependency, None)
 
     def test_login_success(self, client: TestClient):
-        self.mock_use_case.execute.return_value = "jwt_token_abc"
+        self.mock_use_case.execute.return_value = TokenResponse(
+            access_token="jwt_token_abc",
+            token_type="Bearer",
+        )
 
         payload = {"email": "alice@example.com", "password": "password123"}
 
@@ -139,14 +150,7 @@ class TestLogoutEndpoint:
 
     def test_logout_success(self, client: TestClient):
         user_id = uuid_gen()
-        user = User(
-            username=UserName(value="alice"),
-            email=Email(value="alice@example.com"),
-            password=HashedPassword(value="hashed"),
-            role=Role(),
-            id=user_id,
-        )
-        self.mock_auth_use_case.execute.return_value = user
+        self.mock_auth_use_case.execute.return_value = user_id
 
         response = client.post("/auth/logout")
 
@@ -160,25 +164,29 @@ class TestGetMeEndpoint:
     def setup(self, app: FastAPI):
         self.mock_token = "valid_token"
 
-        self.mock_use_case = MagicMock(spec=AuthenticateUserByTokenUseCase)
-        self.mock_use_case.execute = AsyncMock()
+        self.mock_auth_use_case = MagicMock(spec=AuthenticateUserByTokenUseCase)
+        self.mock_auth_use_case.execute = AsyncMock()
+
+        self.mock_user_info_use_case = MagicMock(spec=GetUserInfoByTokenUseCase)
+        self.mock_user_info_use_case.execute = AsyncMock()
 
         app.dependency_overrides[get_current_user_token] = lambda: self.mock_token
-        app.dependency_overrides[auth_user_dependency] = lambda: self.mock_use_case
+        app.dependency_overrides[auth_user_dependency] = lambda: self.mock_auth_use_case
+        app.dependency_overrides[user_info_dependency] = lambda: self.mock_user_info_use_case
         yield
         app.dependency_overrides.pop(get_current_user_token, None)
         app.dependency_overrides.pop(auth_user_dependency, None)
+        app.dependency_overrides.pop(user_info_dependency, None)
 
     def test_get_me_success(self, client: TestClient):
         user_id = uuid_gen()
-        user = User(
-            username=UserName(value="alice"),
-            email=Email(value="alice@example.com"),
-            password=HashedPassword(value="hashed"),
-            role=Role(),
+        self.mock_auth_use_case.execute.return_value = user_id
+        self.mock_user_info_use_case.execute.return_value = UserResponse(
             id=user_id,
+            username="alice",
+            email="alice@example.com",
+            role="user",
         )
-        self.mock_use_case.execute.return_value = user
 
         response = client.get("/auth/me")
 
@@ -188,10 +196,10 @@ class TestGetMeEndpoint:
         assert data["username"] == "alice"
         assert data["email"] == "alice@example.com"
         assert data["role"] == "user"
-        self.mock_use_case.execute.assert_awaited_once_with(self.mock_token)
+        self.mock_auth_use_case.execute.assert_awaited_once_with(self.mock_token)
 
     def test_get_me_invalid_token(self, client: TestClient):
-        self.mock_use_case.execute.side_effect = InvalidCredentialsError(
+        self.mock_auth_use_case.execute.side_effect = InvalidCredentialsError(
             "Invalid credentials"
         )
 

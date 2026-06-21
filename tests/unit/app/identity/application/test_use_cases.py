@@ -3,9 +3,9 @@ from uuid import UUID
 
 import pytest
 
+from app.identity.application.dto import LoginRequest, RegisterUserRequest
 from app.identity.application.use_cases import (
     AuthenticateUserByTokenUseCase,
-    GetUserIdByTokenUseCase,
     LoginUseCase,
     LogoutUseCase,
     RegisterUserUseCase,
@@ -44,42 +44,46 @@ class TestRegisterUserUseCase:
         uc, user_repo, hasher = use_case
         user_repo.exists_by_email.return_value = False
         hasher.hash.return_value = HashedPassword(value="hashed")
-        new_user = User(
-            username=UserName(value="alice"),
-            email=Email(value="alice@example.com"),
-            password=HashedPassword(value="raw"),
-            role=Role(),
+
+        request = RegisterUserRequest(
+            username="alice",
+            email="alice@example.com",
+            password="raw_password",
         )
 
         with patch(
             "app.identity.application.use_cases.event_bus.publish",
             new_callable=AsyncMock,
         ) as mock_publish:
-            await uc.execute(new_user, "raw_password")
+            await uc.execute(request)
 
         hasher.hash.assert_called_once_with("raw_password")
-        user_repo.save.assert_awaited_once_with(new_user)
-        assert new_user.password == HashedPassword(value="hashed")
+        user_repo.save.assert_awaited_once()
+        saved_user = user_repo.save.call_args[0][0]
+        assert isinstance(saved_user, User)
+        assert saved_user.username == UserName("alice")
+        assert saved_user.email == Email("alice@example.com")
+        assert saved_user.password == HashedPassword(value="hashed")
         mock_publish.assert_awaited_once()
         args, _ = mock_publish.call_args
         published_event = args[0]
         assert isinstance(published_event, UserRegistered)
-        assert published_event.user_id == new_user.id
+        assert published_event.user_id == saved_user.id
 
     async def test_register_user_already_exists(self, use_case: UseCaseFixture):
         uc, user_repo, _ = use_case
         user_repo.exists_by_email.return_value = True
-        new_user = User(
-            username=UserName(value="alice"),
-            email=Email(value="alice@example.com"),
-            password=HashedPassword(value="raw"),
-            role=Role(),
+
+        request = RegisterUserRequest(
+            username="alice",
+            email="alice@example.com",
+            password="raw_password",
         )
 
         with pytest.raises(UserAlreadyExistsError, match="already exists"):
-            await uc.execute(new_user, "raw_password")
+            await uc.execute(request)
 
-        user_repo.exists_by_email.assert_awaited_once_with(new_user.email)
+        user_repo.exists_by_email.assert_awaited_once_with(Email("alice@example.com"))
         user_repo.save.assert_not_awaited()
 
 
@@ -107,11 +111,10 @@ class TestLoginUseCase:
 
     async def test_login_success(self, use_case: LoginCaseFixture):
         uc, user_repo, token_repo, hasher, token_service = use_case
-        email = Email(value="alice@example.com")
-        password = "correct_password"
+        request = LoginRequest(email="alice@example.com", password="correct_password")
         user = User(
             username=UserName(value="alice"),
-            email=email,
+            email=Email(value="alice@example.com"),
             password=HashedPassword(value="hashed"),
             role=Role(),
             id=uuid_gen(),
@@ -124,11 +127,11 @@ class TestLoginUseCase:
             "app.identity.application.use_cases.event_bus.publish",
             new_callable=AsyncMock,
         ) as mock_publish:
-            result = await uc.execute(email, password)
+            result = await uc.execute(request)
 
-        assert result == "jwt_token"
-        user_repo.get_by_email.assert_awaited_once_with(email)
-        hasher.verify.assert_called_once_with(password, user.password)
+        assert result.access_token == "jwt_token"
+        user_repo.get_by_email.assert_awaited_once_with(Email("alice@example.com"))
+        hasher.verify.assert_called_once_with("correct_password", user.password)
         user_repo.save.assert_awaited_once_with(user)
         token_service.generate.assert_called_once_with(user.id, user.role.value)
         token_repo.save.assert_awaited_once()
@@ -139,20 +142,20 @@ class TestLoginUseCase:
 
     async def test_login_invalid_email(self, use_case: LoginCaseFixture):
         uc, user_repo, _, hasher, _ = use_case
-        email = Email(value="unknown@example.com")
         user_repo.get_by_email.return_value = None
 
         with pytest.raises(InvalidCredentialsError, match="Invalid credentials"):
-            await uc.execute(email, "password")
+            await uc.execute(
+                LoginRequest(email="unknown@example.com", password="password")
+            )
 
         hasher.verify.assert_not_called()
 
     async def test_login_invalid_password(self, use_case: LoginCaseFixture):
         uc, user_repo, _, hasher, _ = use_case
-        email = Email(value="alice@example.com")
         user = User(
             username=UserName(value="alice"),
-            email=email,
+            email=Email(value="alice@example.com"),
             password=HashedPassword(value="hashed"),
             role=Role(),
         )
@@ -160,7 +163,9 @@ class TestLoginUseCase:
         hasher.verify.return_value = False
 
         with pytest.raises(InvalidCredentialsError, match="Invalid credentials"):
-            await uc.execute(email, "wrong_password")
+            await uc.execute(
+                LoginRequest(email="alice@example.com", password="wrong_password")
+            )
 
         hasher.verify.assert_called_once_with("wrong_password", user.password)
 
@@ -192,50 +197,37 @@ class TestLogoutUseCase:
 
 
 class TestAuthenticateUserByTokenUseCase:
-    type AuthCaseFixture = tuple[
-        AuthenticateUserByTokenUseCase, AsyncMock, MagicMock, MagicMock
-    ]
+    type AuthCaseFixture = tuple[AuthenticateUserByTokenUseCase, MagicMock, MagicMock]
 
     @pytest.fixture
     def use_case(self) -> AuthCaseFixture:
-        user_repo = MagicMock()
-        user_repo.get_user_by_id = AsyncMock()
         token_repo = MagicMock()
         token_repo.get_by_token = AsyncMock()
         token_service = MagicMock()
         return (
-            AuthenticateUserByTokenUseCase(user_repo, token_repo, token_service),
-            user_repo,
+            AuthenticateUserByTokenUseCase(token_repo, token_service),
             token_repo,
             token_service,
         )
 
     async def test_authenticate_success(self, use_case: AuthCaseFixture):
-        uc, user_repo, token_repo, token_service = use_case
+        uc, token_repo, token_service = use_case
         user_id = uuid_gen()
         token_service.decode.return_value = {"user_id": str(user_id)}
         token_repo.get_by_token.return_value = MagicMock(
             token="valid_token",
             blacklisted=False,
         )
-        user = User(
-            username=UserName(value="alice"),
-            email=Email(value="alice@example.com"),
-            password=HashedPassword(value="hashed"),
-            role=Role(),
-            id=user_id,
-        )
-        user_repo.get_user_by_id.return_value = user
 
         result = await uc.execute("valid_token")
 
-        assert result == user
+        assert result == user_id
+        assert isinstance(result, UUID)
         token_service.decode.assert_called_once_with("valid_token")
         token_repo.get_by_token.assert_awaited_once_with("valid_token")
-        user_repo.get_user_by_id.assert_awaited_once_with(user_id)
 
     async def test_authenticate_blacklisted_token(self, use_case: AuthCaseFixture):
-        uc, user_repo, token_repo, token_service = use_case
+        uc, token_repo, token_service = use_case
         token_service.decode.return_value = {"user_id": str(uuid_gen())}
         token_repo.get_by_token.return_value = MagicMock(
             token="blacklisted_token",
@@ -245,49 +237,10 @@ class TestAuthenticateUserByTokenUseCase:
         with pytest.raises(InvalidCredentialsError, match="blacklisted"):
             await uc.execute("blacklisted_token")
 
-        user_repo.get_user_by_id.assert_not_awaited()
-
     async def test_authenticate_token_not_found(self, use_case: AuthCaseFixture):
-        uc, user_repo, token_repo, token_service = use_case
+        uc, token_repo, token_service = use_case
         token_service.decode.return_value = {"user_id": str(uuid_gen())}
         token_repo.get_by_token.return_value = None
 
         with pytest.raises(InvalidCredentialsError, match="blacklisted"):
             await uc.execute("unknown_token")
-
-        user_repo.get_user_by_id.assert_not_awaited()
-
-    async def test_authenticate_user_not_found(self, use_case: AuthCaseFixture):
-        uc, user_repo, token_repo, token_service = use_case
-        user_id = uuid_gen()
-        token_service.decode.return_value = {"user_id": str(user_id)}
-        token_repo.get_by_token.return_value = MagicMock(
-            token="valid_token",
-            blacklisted=False,
-        )
-        user_repo.get_user_by_id.return_value = None
-
-        with pytest.raises(InvalidCredentialsError, match="Invalid credentials"):
-            await uc.execute("valid_token")
-
-        user_repo.get_user_by_id.assert_awaited_once_with(user_id)
-
-
-class TestGetUserIdByTokenUseCase:
-    type GetUserCaseFixture = tuple[GetUserIdByTokenUseCase, MagicMock]
-
-    @pytest.fixture
-    def use_case(self) -> GetUserCaseFixture:
-        token_service = MagicMock(spec=["decode"])
-        return GetUserIdByTokenUseCase(token_service), token_service
-
-    def test_get_user_id_success(self, use_case: GetUserCaseFixture):
-        uc, token_service = use_case
-        user_id = uuid_gen()
-        token_service.decode.return_value = {"user_id": str(user_id)}
-
-        result = uc.execute("some_token")
-
-        assert result == user_id
-        assert isinstance(result, UUID)
-        token_service.decode.assert_called_once_with("some_token")

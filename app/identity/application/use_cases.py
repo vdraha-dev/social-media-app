@@ -1,5 +1,11 @@
 from uuid import UUID
 
+from app.identity.application.dto import (
+    LoginRequest,
+    RegisterUserRequest,
+    TokenResponse,
+    UserResponse,
+)
 from app.identity.domain.entities import User
 from app.identity.domain.events import UserLoggedIn, UserLoggedOut, UserRegistered
 from app.identity.domain.exceptions import (
@@ -12,6 +18,7 @@ from app.identity.domain.service import (
     ITokenService,
     IUserRepository,
 )
+from app.identity.domain.value_objects import Role, UserName
 from app.shared.domain.value_objects import Email
 from app.shared.events.event_bus import event_bus
 
@@ -21,18 +28,32 @@ class RegisterUserUseCase:
         self.user_repo = user_repo
         self.hasher = password_hasher
 
-    async def execute(self, new_user: User, raw_password: str):
-        if await self.user_repo.exists_by_email(new_user.email):
+    async def execute(self, request: RegisterUserRequest):
+        if await self.user_repo.exists_by_email(Email(request.email)):
             raise UserAlreadyExistsError("User already exists with this email")
 
-        new_user.change_password(self.hasher.hash(raw_password))
-        await self.user_repo.save(new_user)
+        user = User(
+            username=UserName(request.username),
+            email=Email(request.email),
+            password=self.hasher.hash(request.password),
+            role=Role(),
+        )
+
+        await self.user_repo.save(user)
+
         await event_bus.publish(
             UserRegistered(
-                user_id=new_user.id,
-                username=new_user.username,
-                email=new_user.email,
+                user_id=user.id,
+                username=user.username,
+                email=user.email,
             )
+        )
+
+        return UserResponse(
+            id=user.id,
+            username=str(user.username),
+            email=str(user.email),
+            role=str(user.role),
         )
 
 
@@ -49,10 +70,10 @@ class LoginUseCase:
         self.hasher = hasher
         self.token_service = token_service
 
-    async def execute(self, email: Email, password: str) -> str:
-        user = await self.user_repo.get_by_email(email)
+    async def execute(self, request: LoginRequest) -> TokenResponse:
+        user = await self.user_repo.get_by_email(Email(request.email))
 
-        if not user or not self.hasher.verify(password, user.password):
+        if not user or not self.hasher.verify(request.password, user.password):
             raise InvalidCredentialsError(
                 "Invalid credentials. Wrong email or password."
             )
@@ -65,7 +86,10 @@ class LoginUseCase:
 
         await event_bus.publish(UserLoggedIn(user_id=user.id))
 
-        return token.token
+        return TokenResponse(
+            access_token=token.token,
+            token_type="Bearer",
+        )
 
 
 class LogoutUseCase:
@@ -80,32 +104,34 @@ class LogoutUseCase:
 class AuthenticateUserByTokenUseCase:
     def __init__(
         self,
-        user_repo: IUserRepository,
         token_repo: IAccessTokenRepository,
         token_service: ITokenService,
     ):
-        self.user_repo = user_repo
         self.token_repo = token_repo
         self.token_service = token_service
 
-    async def execute(self, token_str: str) -> User:
-        payload = self.token_service.decode(token_str)
-
+    async def execute(self, token_str: str) -> UUID:
         token = await self.token_repo.get_by_token(token_str)
         if not token or token.blacklisted:
             raise InvalidCredentialsError("Token is blacklisted")
 
-        user = await self.user_repo.get_user_by_id(UUID(payload["user_id"]))
+        payload = self.token_service.decode(token_str)
+        return UUID(payload["user_id"])
+
+
+class GetUserInfoByTokenUseCase:
+    def __init__(self, user_repo: IUserRepository):
+        self.user_repo = user_repo
+
+    async def execute(self, user_id: UUID):
+        user = await self.user_repo.get_user_by_id(user_id)
 
         if not user:
             raise InvalidCredentialsError("Invalid credentials")
 
-        return user
-
-
-class GetUserIdByTokenUseCase:
-    def __init__(self, token_service: ITokenService):
-        self.token_service = token_service
-
-    def execute(self, token: str) -> UUID:
-        return UUID(self.token_service.decode(token)["user_id"])
+        return UserResponse(
+            id=user.id,
+            username=str(user.username),
+            email=str(user.email),
+            role=str(user.role),
+        )

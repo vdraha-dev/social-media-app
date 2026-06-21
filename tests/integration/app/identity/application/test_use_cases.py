@@ -7,13 +7,13 @@ from pytz import UTC
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.identity.application.dto import LoginRequest, RegisterUserRequest
 from app.identity.application.use_cases import (
     AuthenticateUserByTokenUseCase,
     LoginUseCase,
     LogoutUseCase,
     RegisterUserUseCase,
 )
-from app.identity.domain.entities import User
 from app.identity.domain.events import UserLoggedIn, UserLoggedOut, UserRegistered
 from app.identity.domain.exceptions import (
     InvalidCredentialsError,
@@ -32,20 +32,19 @@ class TestRegisterUserUseCase:
         hasher = PasswordHasher()
         uc = RegisterUserUseCase(user_repo, hasher)
 
-        new_user = User(
-            username=UserName(value="alice"),
-            email=Email(value="alice@example.com"),
-            password=HashedPassword(value="raw"),
-            role=Role(),
+        request = RegisterUserRequest(
+            username="alice",
+            email="alice@example.com",
+            password="raw_password",
         )
 
         with patch(
             "app.identity.application.use_cases.event_bus.publish",
             new_callable=AsyncMock,
         ) as mock_publish:
-            await uc.execute(new_user, "raw_password")
+            await uc.execute(request)
 
-        stmt = select(UserModel).where(UserModel.id == new_user.id)
+        stmt = select(UserModel).where(UserModel.email == Email("alice@example.com"))
         result = await session.execute(stmt)
         loaded = result.scalar_one()
         assert loaded.username == UserName("alice")
@@ -56,7 +55,7 @@ class TestRegisterUserUseCase:
         mock_publish.assert_awaited_once()
         args, _ = mock_publish.call_args
         assert isinstance(args[0], UserRegistered)
-        assert args[0].user_id == new_user.id
+        assert args[0].user_id == loaded.id
 
     async def test_register_user_already_exists(self, session: AsyncSession):
         user_m = UserModel(
@@ -71,15 +70,14 @@ class TestRegisterUserUseCase:
         hasher = PasswordHasher()
         uc = RegisterUserUseCase(user_repo, hasher)
 
-        new_user = User(
-            username=UserName(value="duplicate"),
-            email=Email(value="existing@example.com"),
-            password=HashedPassword(value="raw"),
-            role=Role(),
+        request = RegisterUserRequest(
+            username="duplicate",
+            email="existing@example.com",
+            password="raw_password",
         )
 
         with pytest.raises(UserAlreadyExistsError, match="already exists"):
-            await uc.execute(new_user, "raw_password")
+            await uc.execute(request)
 
 
 class TestLoginUseCase:
@@ -100,18 +98,20 @@ class TestLoginUseCase:
         token_service = TokenService()
         uc = LoginUseCase(user_repo, token_repo, hasher, token_service)
 
-        email = Email(value="alice@example.com")
+        request = LoginRequest(email="alice@example.com", password="correct_password")
 
         with patch(
             "app.identity.application.use_cases.event_bus.publish",
             new_callable=AsyncMock,
         ) as mock_publish:
-            token_str = await uc.execute(email, "correct_password")
+            token_response = await uc.execute(request)
 
-        assert isinstance(token_str, str)
-        assert len(token_str) > 0
+        assert isinstance(token_response.access_token, str)
+        assert len(token_response.access_token) > 0
 
-        stmt = select(AccessTokenModel).where(AccessTokenModel.token == token_str)
+        stmt = select(AccessTokenModel).where(
+            AccessTokenModel.token == token_response.access_token
+        )
         result = await session.execute(stmt)
         token_loaded = result.scalar_one()
         assert token_loaded.user_id == user_m.id
@@ -136,7 +136,9 @@ class TestLoginUseCase:
         uc = LoginUseCase(user_repo, token_repo, hasher, token_service)
 
         with pytest.raises(InvalidCredentialsError, match="Invalid credentials"):
-            await uc.execute(Email(value="unknown@example.com"), "password")
+            await uc.execute(
+                LoginRequest(email="unknown@example.com", password="password")
+            )
 
     async def test_login_invalid_password(self, session: AsyncSession):
         hasher = PasswordHasher()
@@ -156,7 +158,9 @@ class TestLoginUseCase:
         uc = LoginUseCase(user_repo, token_repo, hasher, token_service)
 
         with pytest.raises(InvalidCredentialsError, match="Invalid credentials"):
-            await uc.execute(Email(value="alice@example.com"), "wrong_password")
+            await uc.execute(
+                LoginRequest(email="alice@example.com", password="wrong_password")
+            )
 
 
 class TestLogoutUseCase:
@@ -228,15 +232,13 @@ class TestAuthenticateUserByTokenUseCase:
         session.add(token_m)
         await session.flush()
 
-        user_repo = UserRepository(session)
         token_repo = AccessTokenRepository(session)
-        uc = AuthenticateUserByTokenUseCase(user_repo, token_repo, token_service)
+        uc = AuthenticateUserByTokenUseCase(token_repo, token_service)
 
         result = await uc.execute(access_token.token)
 
-        assert isinstance(result, User)
-        assert result.id == user_m.id
-        assert result.username == UserName(value="auth-user")
+        assert isinstance(result, UUID)
+        assert result == user_m.id
 
     async def test_authenticate_blacklisted_token(self, session: AsyncSession):
         user_m = UserModel(
@@ -259,9 +261,8 @@ class TestAuthenticateUserByTokenUseCase:
         session.add(token_m)
         await session.flush()
 
-        user_repo = UserRepository(session)
         token_repo = AccessTokenRepository(session)
-        uc = AuthenticateUserByTokenUseCase(user_repo, token_repo, token_service)
+        uc = AuthenticateUserByTokenUseCase(token_repo, token_service)
 
         with pytest.raises(InvalidCredentialsError, match="blacklisted"):
             await uc.execute(access_token.token)
@@ -271,9 +272,8 @@ class TestAuthenticateUserByTokenUseCase:
         user_id = UUID("00000000-0000-0000-0000-000000000000")
         access_token = token_service.generate(user_id, "user")
 
-        user_repo = UserRepository(session)
         token_repo = AccessTokenRepository(session)
-        uc = AuthenticateUserByTokenUseCase(user_repo, token_repo, token_service)
+        uc = AuthenticateUserByTokenUseCase(token_repo, token_service)
 
         with pytest.raises(InvalidCredentialsError, match="blacklisted"):
             await uc.execute(access_token.token)

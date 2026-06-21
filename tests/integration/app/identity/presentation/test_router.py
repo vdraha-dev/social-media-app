@@ -184,4 +184,4 @@ class TestGetMeEndpoint:
             ME_URL,
             headers={"Authorization": "Bearer invalid_token_here"},
         )
-        assert response.status_code == 403
+        assert response.status_code == 401
