@@ -172,7 +172,9 @@ class TestGetMeEndpoint:
 
         app.dependency_overrides[get_current_user_token] = lambda: self.mock_token
         app.dependency_overrides[auth_user_dependency] = lambda: self.mock_auth_use_case
-        app.dependency_overrides[user_info_dependency] = lambda: self.mock_user_info_use_case
+        app.dependency_overrides[user_info_dependency] = lambda: (
+            self.mock_user_info_use_case
+        )
         yield
         app.dependency_overrides.pop(get_current_user_token, None)
         app.dependency_overrides.pop(auth_user_dependency, None)
