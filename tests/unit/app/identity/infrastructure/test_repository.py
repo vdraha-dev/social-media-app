@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 from pytz import UTC
 
 from app.identity.domain.entities import AccessToken, User
-from app.identity.domain.value_objects import HashedPassword, Role, RoleEnum, UserName
+from app.identity.domain.value_objects import HashedPassword, Role, UserName
 from app.identity.infrastructure.models import AccessTokenModel, UserModel
 from app.identity.infrastructure.repository import AccessTokenRepository, UserRepository
 from app.shared.domain.value_objects import Email
@@ -17,10 +17,10 @@ class TestUserRepositoryGetUserById:
         session.get = AsyncMock(
             return_value=UserModel(
                 id=uuid_gen(),
-                username="alice",
-                email="alice@example.com",
-                password_hash="hash",
-                role=RoleEnum.User,
+                username=UserName("alice"),
+                email=Email("alice@example.com"),
+                password_hash=HashedPassword("hash"),
+                role=Role(),
                 last_login=None,
                 created_at=datetime.now(UTC),
                 updated_at=datetime.now(UTC),
@@ -51,10 +51,10 @@ class TestUserRepositoryGetByEmail:
         scalar.scalar_one_or_none = MagicMock(
             return_value=UserModel(
                 id=uuid_gen(),
-                username="bob",
-                email="bob@example.com",
-                password_hash="hash",
-                role=RoleEnum.User,
+                username=UserName("bob"),
+                email=Email("bob@example.com"),
+                password_hash=HashedPassword("hash"),
+                role=Role(),
                 last_login=None,
                 created_at=datetime.now(UTC),
                 updated_at=datetime.now(UTC),
@@ -105,10 +105,10 @@ class TestUserRepositorySave:
         user_id = uuid_gen()
         existing = UserModel(
             id=user_id,
-            username="old",
-            email="old@example.com",
-            password_hash="old_hash",
-            role=RoleEnum.User,
+            username=UserName("old"),
+            email=Email("old@example.com"),
+            password_hash=HashedPassword("old_hash"),
+            role=Role(),
             last_login=None,
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),
@@ -127,9 +127,9 @@ class TestUserRepositorySave:
 
         await repo.save(user)
 
-        assert existing.username == "new"
-        assert existing.email == "new@example.com"
-        assert existing.password_hash == "new_hash"
+        assert existing.username == UserName("new")
+        assert existing.email == Email("new@example.com")
+        assert existing.password_hash == HashedPassword("new_hash")
         session.get.assert_awaited_once_with(UserModel, user_id)
         session.flush.assert_awaited_once()
 
@@ -164,10 +164,10 @@ class TestUserRepositoryToEntity:
         now = datetime.now(UTC)
         model = UserModel(
             id=uid,
-            username="alice",
-            email="alice@example.com",
-            password_hash="hash",
-            role=RoleEnum.User,
+            username=UserName("alice"),
+            email=Email("alice@example.com"),
+            password_hash=HashedPassword("hash"),
+            role=Role(),
             last_login=now,
             created_at=now,
             updated_at=now,
@@ -180,7 +180,7 @@ class TestUserRepositoryToEntity:
         assert entity.username == UserName(value="alice")
         assert entity.email == Email(value="alice@example.com")
         assert entity.password == HashedPassword(value="hash")
-        assert entity.role.value == RoleEnum.User
+        assert entity.role == Role()
         assert entity.last_login == now
         assert entity.created_at == now
         assert entity.updated_at == now
@@ -188,10 +188,10 @@ class TestUserRepositoryToEntity:
     def test_maps_none_last_login(self):
         model = UserModel(
             id=uuid_gen(),
-            username="alice",
-            email="alice@example.com",
-            password_hash="hash",
-            role=RoleEnum.User,
+            username=UserName("alice"),
+            email=Email("alice@example.com"),
+            password_hash=HashedPassword("hash"),
+            role=Role(),
             last_login=None,
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),
@@ -222,10 +222,10 @@ class TestUserRepositoryToModel:
         model = repo._to_model(entity)  # pyright: ignore
 
         assert model.id == uid
-        assert model.username == "alice"
-        assert model.email == "alice@example.com"
-        assert model.password_hash == "hash"
-        assert model.role == RoleEnum.User
+        assert model.username == UserName("alice")
+        assert model.email == Email("alice@example.com")
+        assert model.password_hash == HashedPassword("hash")
+        assert model.role == Role()
         assert model.last_login == now
         assert model.created_at == now
         assert model.updated_at == now

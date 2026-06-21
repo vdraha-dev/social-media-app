@@ -9,8 +9,8 @@ class Bio(BaseValueObject):
     value: str
 
     def _validate(self):
-        if len(self.value) > 500:
-            raise ValueError("Bio must be less than 500 characters")
+        if len(self.value) > 512:
+            raise ValueError("Bio must be less than 512 characters")
 
     def __str__(self):
         return self.value

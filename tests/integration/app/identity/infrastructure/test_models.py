@@ -8,16 +8,17 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.identity.domain.value_objects import RoleEnum
+from app.identity.domain.value_objects import HashedPassword, Role, UserName
 from app.identity.infrastructure.models import AccessTokenModel, UserModel
+from app.shared.domain.value_objects import Email
 
 
 class TestUserModel:
     async def test_create_and_select(self, session: AsyncSession):
         user = UserModel(
-            username="testuser",
-            email="test@example.com",
-            password_hash="hashed_pw",
+            username=UserName("testuser"),
+            email=Email("test@example.com"),
+            password_hash=HashedPassword("hashed_pw"),
         )
         session.add(user)
         await session.commit()
@@ -25,16 +26,16 @@ class TestUserModel:
         stmt = select(UserModel).where(UserModel.id == user.id)
         result = await session.execute(stmt)
         loaded = result.scalar_one()
-        assert loaded.username == "testuser"
-        assert loaded.email == "test@example.com"
-        assert loaded.password_hash == "hashed_pw"
-        assert loaded.role == RoleEnum.User
+        assert loaded.username == UserName("testuser")
+        assert loaded.email == Email("test@example.com")
+        assert loaded.password_hash == HashedPassword("hashed_pw")
+        assert loaded.role == Role()
 
     async def test_auto_generates_uuid(self, session: AsyncSession):
         user = UserModel(
-            username="uuid-test",
-            email="uuid-test@example.com",
-            password_hash="hash",
+            username=UserName("uuid-test"),
+            email=Email("uuid-test@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
@@ -43,14 +44,14 @@ class TestUserModel:
 
     async def test_uuid_is_unique_per_instance(self, session: AsyncSession):
         user_a = UserModel(
-            username="uuid-a",
-            email="uuid-a@example.com",
-            password_hash="hash",
+            username=UserName("uuid-a"),
+            email=Email("uuid-a@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         user_b = UserModel(
-            username="uuid-b",
-            email="uuid-b@example.com",
-            password_hash="hash",
+            username=UserName("uuid-b"),
+            email=Email("uuid-b@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add_all([user_a, user_b])
         await session.commit()
@@ -59,9 +60,9 @@ class TestUserModel:
 
     async def test_auto_generates_timestamps(self, session: AsyncSession):
         user = UserModel(
-            username="timestamps-test",
-            email="timestamps-test@example.com",
-            password_hash="hash",
+            username=UserName("timestamps-test"),
+            email=Email("timestamps-test@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
@@ -76,9 +77,9 @@ class TestUserModel:
     ):
         before = datetime.now(UTC)
         user = UserModel(
-            username="creation-time",
-            email="creation-time@example.com",
-            password_hash="hash",
+            username=UserName("creation-time"),
+            email=Email("creation-time@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
@@ -92,16 +93,16 @@ class TestUserModel:
 
     async def test_updated_at_updates_on_change(self, session: AsyncSession):
         user = UserModel(
-            username="update-test",
-            email="update-test@example.com",
-            password_hash="hash",
+            username=UserName("update-test"),
+            email=Email("update-test@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
 
         original_id = user.id
 
-        user.username = "updated-username"
+        user.username = UserName("updated-username")
         await session.commit()
 
         result = await session.execute(
@@ -113,44 +114,44 @@ class TestUserModel:
 
     async def test_created_at_stays_same_on_update(self, session: AsyncSession):
         user = UserModel(
-            username="created-at-test",
-            email="created-at-test@example.com",
-            password_hash="hash",
+            username=UserName("created-at-test"),
+            email=Email("created-at-test@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
 
         original_created_at = user.created_at
 
-        user.username = "new-username"
+        user.username = UserName("new-username")
         await session.commit()
 
         assert user.created_at == original_created_at
 
     async def test_default_role_is_user(self, session: AsyncSession):
         user = UserModel(
-            username="role-test",
-            email="role-test@example.com",
-            password_hash="hash",
+            username=UserName("role-test"),
+            email=Email("role-test@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
 
-        assert user.role == RoleEnum.User
+        assert user.role == Role()
 
     async def test_email_uniqueness_constraint(self, session: AsyncSession):
         user = UserModel(
-            username="first",
-            email="duplicate@example.com",
-            password_hash="hash",
+            username=UserName("first"),
+            email=Email("duplicate@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
 
         duplicate = UserModel(
-            username="second",
-            email="duplicate@example.com",
-            password_hash="hash",
+            username=UserName("second"),
+            email=Email("duplicate@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(duplicate)
         with pytest.raises(IntegrityError):
@@ -158,9 +159,9 @@ class TestUserModel:
 
     async def test_nullable_last_login(self, session: AsyncSession):
         user = UserModel(
-            username="last-login-test",
-            email="last-login-test@example.com",
-            password_hash="hash",
+            username=UserName("last-login-test"),
+            email=Email("last-login-test@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
@@ -171,9 +172,9 @@ class TestUserModel:
 class TestAccessTokenModel:
     async def test_create_and_select(self, session: AsyncSession):
         user = UserModel(
-            username="token-user",
-            email="token-user@example.com",
-            password_hash="hash",
+            username=UserName("token-user"),
+            email=Email("token-user@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
@@ -201,9 +202,9 @@ class TestAccessTokenModel:
 
     async def test_auto_generates_uuid(self, session: AsyncSession):
         user = UserModel(
-            username="uuid-token-user",
-            email="uuid-token-user@example.com",
-            password_hash="hash",
+            username=UserName("uuid-token-user"),
+            email=Email("uuid-token-user@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
@@ -221,9 +222,9 @@ class TestAccessTokenModel:
 
     async def test_uuid_is_unique_per_instance(self, session: AsyncSession):
         user = UserModel(
-            username="unique-uuid-user",
-            email="unique-uuid-user@example.com",
-            password_hash="hash",
+            username=UserName("unique-uuid-user"),
+            email=Email("unique-uuid-user@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
@@ -247,9 +248,9 @@ class TestAccessTokenModel:
 
     async def test_auto_generates_timestamps(self, session: AsyncSession):
         user = UserModel(
-            username="timestamps-token-user",
-            email="timestamps-token-user@example.com",
-            password_hash="hash",
+            username=UserName("timestamps-token-user"),
+            email=Email("timestamps-token-user@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
@@ -281,9 +282,9 @@ class TestAccessTokenModel:
 
     async def test_token_uniqueness(self, session: AsyncSession):
         user = UserModel(
-            username="token-unique-user",
-            email="token-unique-user@example.com",
-            password_hash="hash",
+            username=UserName("token-unique-user"),
+            email=Email("token-unique-user@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
@@ -311,9 +312,9 @@ class TestAccessTokenModel:
 class TestUserAccessTokenRelationship:
     async def test_user_has_tokens(self, session: AsyncSession):
         user = UserModel(
-            username="rel-user",
-            email="rel-user@example.com",
-            password_hash="hash",
+            username=UserName("rel-user"),
+            email=Email("rel-user@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
@@ -339,9 +340,9 @@ class TestUserAccessTokenRelationship:
 
     async def test_token_belongs_to_user(self, session: AsyncSession):
         user = UserModel(
-            username="belongs-user",
-            email="belongs-user@example.com",
-            password_hash="hash",
+            username=UserName("belongs-user"),
+            email=Email("belongs-user@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
@@ -356,13 +357,13 @@ class TestUserAccessTokenRelationship:
         await session.commit()
 
         assert token.user.id == user.id
-        assert token.user.username == "belongs-user"
+        assert token.user.username == UserName("belongs-user")
 
     async def test_cascade_delete_from_user(self, session: AsyncSession):
         user = UserModel(
-            username="cascade-user",
-            email="cascade-user@example.com",
-            password_hash="hash",
+            username=UserName("cascade-user"),
+            email=Email("cascade-user@example.com"),
+            password_hash=HashedPassword("hash"),
         )
         session.add(user)
         await session.commit()
