@@ -32,7 +32,7 @@ class UserProfile(BaseEntity):
         self._displayed_name = displayed_name
         self._avatar_url = avatar_url
         self._bio = bio
-        self._social_links = social_links if social_links else list[SocialLink]()
+        self._social_links = social_links if social_links else []
 
     @property
     def user_id(self) -> UUID:
