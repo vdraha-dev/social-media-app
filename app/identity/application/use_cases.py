@@ -19,8 +19,8 @@ from app.identity.domain.service import (
     IUserRepository,
 )
 from app.identity.domain.value_objects import Role, UserName
-from app.shared.domain.value_objects import Email
 from app.shared.domain.event_bus import event_bus
+from app.shared.domain.value_objects import Email
 
 
 class RegisterUserUseCase:
