@@ -6,7 +6,7 @@ from uuid import UUID
 import pytest
 from pytz import UTC
 
-from app.shared.events.event_bus import DomainEvent, EventBus
+from app.shared.domain.event_bus import DomainEvent, EventBus
 from app.shared.utils import uuid_gen
 
 

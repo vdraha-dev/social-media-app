@@ -20,7 +20,7 @@ from app.identity.domain.service import (
 )
 from app.identity.domain.value_objects import Role, UserName
 from app.shared.domain.value_objects import Email
-from app.shared.events.event_bus import event_bus
+from app.shared.domain.event_bus import event_bus
 
 
 class RegisterUserUseCase:

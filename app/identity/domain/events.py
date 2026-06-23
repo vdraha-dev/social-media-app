@@ -2,7 +2,7 @@ from uuid import UUID
 
 from app.identity.domain.value_objects import UserName
 from app.shared.domain.value_objects import Email
-from app.shared.events.event_bus import DomainEvent
+from app.shared.domain.event_bus import DomainEvent
 
 
 class _UserIdMixin(DomainEvent):
