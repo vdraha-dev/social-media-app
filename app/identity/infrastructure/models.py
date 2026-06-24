@@ -20,7 +20,7 @@ class UserModel(Base):
     password_hash: Mapped[HashedPassword] = mapped_column(
         HashedPasswordType(), nullable=False
     )
-    role: Mapped[Role] = mapped_column(RoleType, default=Role)
+    role: Mapped[Role] = mapped_column(RoleType(), default=Role)
     last_login: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

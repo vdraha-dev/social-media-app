@@ -1,6 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from h11 import Request
 
 from app.profiles.domain.exceptions import UserProfileNotFound
 
