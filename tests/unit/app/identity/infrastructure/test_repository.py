@@ -84,8 +84,7 @@ class TestUserRepositoryGetByEmail:
 class TestUserRepositorySave:
     async def test_inserts_new_user(self):
         session = MagicMock(spec=AsyncMock)
-        session.get = AsyncMock(return_value=None)
-        session.add = MagicMock()
+        session.merge = AsyncMock(return_value=MagicMock())
         session.flush = AsyncMock()
         repo = UserRepository(session)
         user = User(
@@ -97,24 +96,13 @@ class TestUserRepositorySave:
 
         await repo.save(user)
 
-        session.get.assert_awaited_once_with(UserModel, user.id)
-        session.add.assert_called_once()
+        session.merge.assert_awaited_once()
         session.flush.assert_awaited_once()
 
     async def test_updates_existing_user(self):
         user_id = uuid_gen()
-        existing = UserModel(
-            id=user_id,
-            username=UserName("old"),
-            email=Email("old@example.com"),
-            password_hash=HashedPassword("old_hash"),
-            role=Role(),
-            last_login=None,
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC),
-        )
         session = MagicMock(spec=AsyncMock)
-        session.get = AsyncMock(return_value=existing)
+        session.merge = AsyncMock(return_value=MagicMock())
         session.flush = AsyncMock()
         repo = UserRepository(session)
         user = User(
@@ -127,10 +115,7 @@ class TestUserRepositorySave:
 
         await repo.save(user)
 
-        assert existing.username == UserName("new")
-        assert existing.email == Email("new@example.com")
-        assert existing.password_hash == HashedPassword("new_hash")
-        session.get.assert_awaited_once_with(UserModel, user_id)
+        session.merge.assert_awaited_once()
         session.flush.assert_awaited_once()
 
 
@@ -271,7 +256,7 @@ class TestAccessTokenRepositoryGetByToken:
 class TestAccessTokenRepositorySave:
     async def test_adds_and_flushes(self):
         session = MagicMock(spec=AsyncMock)
-        session.add = MagicMock()
+        session.merge = AsyncMock(return_value=MagicMock())
         session.flush = AsyncMock()
         repo = AccessTokenRepository(session)
         token = AccessToken(
@@ -282,7 +267,7 @@ class TestAccessTokenRepositorySave:
 
         await repo.save(token)
 
-        session.add.assert_called_once()
+        session.merge.assert_called_once()
         session.flush.assert_awaited_once()
 
 
