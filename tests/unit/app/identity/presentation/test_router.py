@@ -1,17 +1,11 @@
-from unittest.mock import AsyncMock, MagicMock
+from typing import cast
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.identity.application.dto import TokenResponse, UserResponse
-from app.identity.application.use_cases import (
-    AuthenticateUserByTokenUseCase,
-    GetUserInfoByTokenUseCase,
-    LoginUseCase,
-    LogoutUseCase,
-    RegisterUserUseCase,
-)
 from app.identity.domain.exceptions import (
     InvalidCredentialsError,
     UserAlreadyExistsError,
@@ -20,22 +14,24 @@ from app.identity.presentation.dependencies import get_current_user_token
 from app.identity.presentation.exception_handlers import (
     register_exception_handlers,
 )
-from app.identity.presentation.router import (
-    auth,
-    auth_user_dependency,
-    login_dependency,
-    logout_dependency,
-    register_dependency,
-    user_info_dependency,
-)
+from app.identity.presentation.router import auth
+from app.shared.infrastructure.database import UnitOfWork, get_uow
 from app.shared.utils import uuid_gen
 
 
 @pytest.fixture
-def app() -> FastAPI:
+def mock_uow() -> Mock:
+    uow = MagicMock(spec=UnitOfWork)
+    uow.session = MagicMock()
+    return uow
+
+
+@pytest.fixture
+def app(mock_uow: Mock) -> FastAPI:
     app = FastAPI()
     app.include_router(auth)
     register_exception_handlers(app)
+    app.dependency_overrides[get_uow] = lambda: cast(UnitOfWork, mock_uow)
     return app
 
 
@@ -46,12 +42,16 @@ def client(app: FastAPI) -> TestClient:
 
 class TestRegisterEndpoint:
     @pytest.fixture(autouse=True)
-    def setup(self, app: FastAPI):
-        self.mock_use_case = MagicMock(spec=RegisterUserUseCase)
+    def setup(self):
+        self.mock_use_case = MagicMock()
         self.mock_use_case.execute = AsyncMock()
-        app.dependency_overrides[register_dependency] = lambda: self.mock_use_case
+        self._patcher = patch(
+            "app.identity.presentation.router.RegisterUserUseCase",
+        )
+        self.mock_class = self._patcher.start()
+        self.mock_class.return_value = self.mock_use_case
         yield
-        app.dependency_overrides.pop(register_dependency, None)
+        self._patcher.stop()
 
     def test_register_success(self, client: TestClient):
         user_id = uuid_gen()
@@ -96,12 +96,16 @@ class TestRegisterEndpoint:
 
 class TestLoginEndpoint:
     @pytest.fixture(autouse=True)
-    def setup(self, app: FastAPI):
-        self.mock_use_case = MagicMock(spec=LoginUseCase)
+    def setup(self):
+        self.mock_use_case = MagicMock()
         self.mock_use_case.execute = AsyncMock()
-        app.dependency_overrides[login_dependency] = lambda: self.mock_use_case
+        self._patcher = patch(
+            "app.identity.presentation.router.LoginUseCase",
+        )
+        self.mock_class = self._patcher.start()
+        self.mock_class.return_value = self.mock_use_case
         yield
-        app.dependency_overrides.pop(login_dependency, None)
+        self._patcher.stop()
 
     def test_login_success(self, client: TestClient):
         self.mock_use_case.execute.return_value = TokenResponse(
@@ -135,18 +139,28 @@ class TestLogoutEndpoint:
     def setup(self, app: FastAPI):
         self.mock_token = "valid_token"
 
-        self.mock_auth_use_case = MagicMock(spec=AuthenticateUserByTokenUseCase)
+        self.mock_auth_use_case = MagicMock()
         self.mock_auth_use_case.execute = AsyncMock()
-        self.mock_logout_use_case = MagicMock(spec=LogoutUseCase)
+        self.mock_logout_use_case = MagicMock()
         self.mock_logout_use_case.execute = AsyncMock()
 
+        self._patcher_auth = patch(
+            "app.identity.presentation.router.AuthenticateUserByTokenUseCase",
+        )
+        self.mock_auth_class = self._patcher_auth.start()
+        self.mock_auth_class.return_value = self.mock_auth_use_case
+
+        self._patcher_logout = patch(
+            "app.identity.presentation.router.LogoutUseCase",
+        )
+        self.mock_logout_class = self._patcher_logout.start()
+        self.mock_logout_class.return_value = self.mock_logout_use_case
+
         app.dependency_overrides[get_current_user_token] = lambda: self.mock_token
-        app.dependency_overrides[auth_user_dependency] = lambda: self.mock_auth_use_case
-        app.dependency_overrides[logout_dependency] = lambda: self.mock_logout_use_case
         yield
+        self._patcher_auth.stop()
+        self._patcher_logout.stop()
         app.dependency_overrides.pop(get_current_user_token, None)
-        app.dependency_overrides.pop(auth_user_dependency, None)
-        app.dependency_overrides.pop(logout_dependency, None)
 
     def test_logout_success(self, client: TestClient):
         user_id = uuid_gen()
@@ -164,21 +178,29 @@ class TestGetMeEndpoint:
     def setup(self, app: FastAPI):
         self.mock_token = "valid_token"
 
-        self.mock_auth_use_case = MagicMock(spec=AuthenticateUserByTokenUseCase)
+        self.mock_auth_use_case = MagicMock()
         self.mock_auth_use_case.execute = AsyncMock()
 
-        self.mock_user_info_use_case = MagicMock(spec=GetUserInfoByTokenUseCase)
+        self.mock_user_info_use_case = MagicMock()
         self.mock_user_info_use_case.execute = AsyncMock()
 
-        app.dependency_overrides[get_current_user_token] = lambda: self.mock_token
-        app.dependency_overrides[auth_user_dependency] = lambda: self.mock_auth_use_case
-        app.dependency_overrides[user_info_dependency] = lambda: (
-            self.mock_user_info_use_case
+        self._patcher_auth = patch(
+            "app.identity.presentation.router.AuthenticateUserByTokenUseCase",
         )
+        self.mock_auth_class = self._patcher_auth.start()
+        self.mock_auth_class.return_value = self.mock_auth_use_case
+
+        self._patcher_info = patch(
+            "app.identity.presentation.router.GetUserInfoByTokenUseCase",
+        )
+        self.mock_info_class = self._patcher_info.start()
+        self.mock_info_class.return_value = self.mock_user_info_use_case
+
+        app.dependency_overrides[get_current_user_token] = lambda: self.mock_token
         yield
+        self._patcher_auth.stop()
+        self._patcher_info.stop()
         app.dependency_overrides.pop(get_current_user_token, None)
-        app.dependency_overrides.pop(auth_user_dependency, None)
-        app.dependency_overrides.pop(user_info_dependency, None)
 
     def test_get_me_success(self, client: TestClient):
         user_id = uuid_gen()
