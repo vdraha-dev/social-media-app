@@ -20,7 +20,9 @@ class ProfilesRepository(IProfileRepository):
             db_profile.set_bio(profile.bio)
             db_profile.add_social_links(profile.social_links)
         else:
-            self.session.add(self._to_model(profile))
+            db_profile = profile
+
+        self.session.add(self._to_model(db_profile))
 
         await self.session.flush()
 
