@@ -4,8 +4,9 @@ from fastapi import Depends
 from fastapi.routing import APIRouter
 
 from app.identity.application.use_cases import AuthenticateUserByTokenUseCase
+from app.identity.infrastructure.repository import AccessTokenRepository
+from app.identity.infrastructure.security import TokenService
 from app.identity.presentation.dependencies import get_current_user_token
-from app.identity.presentation.router import auth_user_dependency
 from app.profiles.application.dto import ProfileResponse, UpdateProfileRequest
 from app.profiles.application.use_cases import (
     GetUserProfileByUserIdUseCase,
@@ -26,11 +27,10 @@ async def update_profile_dependency(uow: UnitOfWork = Depends(get_uow)):
 
 
 @profiles.get("/{user_id}", response_model=ProfileResponse)
-async def get_profile(
-    user_id: UUID,
-    get_profile: GetUserProfileByUserIdUseCase = Depends(get_profile_by_user_id),
-):
-    response = await get_profile.execute(user_id)
+async def get_profile(user_id: UUID, uow: UnitOfWork = Depends(get_uow)):
+    response = await GetUserProfileByUserIdUseCase(
+        ProfilesRepository(uow.session)
+    ).execute(user_id)
 
     return response
 
@@ -38,11 +38,15 @@ async def get_profile(
 @profiles.get("/me", response_model=ProfileResponse)
 async def get_me(
     user_token: str = Depends(get_current_user_token),
-    auth_use_case: AuthenticateUserByTokenUseCase = Depends(auth_user_dependency),
-    get_profile: GetUserProfileByUserIdUseCase = Depends(get_profile_by_user_id),
+    uow: UnitOfWork = Depends(get_uow),
 ):
-    user_id = await auth_use_case.execute(user_token)
-    response = await get_profile.execute(user_id)
+    user_id = await AuthenticateUserByTokenUseCase(
+        AccessTokenRepository(uow.session),
+        TokenService(),
+    ).execute(user_token)
+    response = await GetUserProfileByUserIdUseCase(
+        ProfilesRepository(uow.session)
+    ).execute(user_id)
 
     return response
 
@@ -51,11 +55,13 @@ async def get_me(
 async def update_profile(
     request: UpdateProfileRequest,
     user_token: str = Depends(get_current_user_token),
-    auth_use_case: AuthenticateUserByTokenUseCase = Depends(auth_user_dependency),
-    update_profile_use_case: UpdateUserProfileUseCase = Depends(
-        update_profile_dependency
-    ),
+    uow: UnitOfWork = Depends(get_uow),
 ):
-    user_id = await auth_use_case.execute(user_token)
-    response = await update_profile_use_case.execute(user_id, request)
+    user_id = await AuthenticateUserByTokenUseCase(
+        AccessTokenRepository(uow.session),
+        TokenService(),
+    ).execute(user_token)
+    response = await UpdateUserProfileUseCase(ProfilesRepository(uow.session)).execute(
+        user_id, request
+    )
     return response
