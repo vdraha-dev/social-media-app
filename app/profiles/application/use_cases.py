@@ -1,9 +1,15 @@
 from uuid import UUID
 
 from app.profiles.application.dto import ProfileResponse, UpdateProfileRequest
-from app.profiles.domain.exceptions import UserProfileNotFound
+from app.profiles.domain.entities import UserProfile
+from app.profiles.domain.events import UserProfileCreated
+from app.profiles.domain.exceptions import (
+    UserProfileIsAlreadyExists,
+    UserProfileNotFound,
+)
 from app.profiles.domain.repositories import IProfileRepository
 from app.profiles.domain.value_objects import Bio, DisplayedName
+from app.shared.domain.event_bus import event_bus
 from app.shared.domain.value_objects import Url
 
 
@@ -55,3 +61,22 @@ class UpdateUserProfileUseCase:
             avatar_url=str(profile.avatar_url) if profile.avatar_url else None,
             social_links=[link.to_dict() for link in profile.social_links],
         )
+
+
+class CreateNewUserProfileUseCase:
+    def __init__(self, profile_repo: IProfileRepository):
+        self.profile_repo = profile_repo
+
+    async def execute(self, user_id: UUID, username: str) -> UUID:
+        profile = await self.profile_repo.get_by_user_id(user_id)
+
+        if profile:
+            raise UserProfileIsAlreadyExists("User profile is already exists for user")
+
+        profile = UserProfile(user_id=user_id, displayed_name=DisplayedName(username))
+
+        await self.profile_repo.save(profile)
+
+        await event_bus.publish(UserProfileCreated(user_id, profile.id))
+
+        return profile.id
