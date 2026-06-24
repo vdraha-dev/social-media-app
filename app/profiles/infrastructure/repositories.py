@@ -13,17 +13,7 @@ class ProfilesRepository(IProfileRepository):
         self.session = session
 
     async def save(self, profile: UserProfile):
-        db_profile = await self.get_by_user_id(profile.user_id)
-        if db_profile:
-            db_profile.set_displayed_name(profile.displayed_name)
-            db_profile.set_avatar_url(profile.avatar_url)
-            db_profile.set_bio(profile.bio)
-            db_profile.add_social_links(profile.social_links)
-        else:
-            db_profile = profile
-
-        self.session.add(self._to_model(db_profile))
-
+        await self.session.merge(self._to_model(profile))
         await self.session.flush()
 
     async def get_by_user_id(self, user_id: UUID) -> UserProfile | None:

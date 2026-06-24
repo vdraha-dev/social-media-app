@@ -24,16 +24,7 @@ class UserRepository(IUserRepository):
         return self._to_entity(user) if user else None
 
     async def save(self, user: User):
-        user_m = await self.session.get(UserModel, user.id)
-        if user_m:
-            user_m.username = user.username
-            user_m.email = user.email
-            user_m.password_hash = user.password
-            user_m.role = user.role
-            user_m.last_login = user.last_login
-            user_m.updated_at = user.updated_at
-        else:
-            self.session.add(self._to_model(user))
+        await self.session.merge(self._to_model(user))
         await self.session.flush()
 
     async def exists_by_email(self, email: Email) -> bool:
@@ -80,7 +71,7 @@ class AccessTokenRepository(IAccessTokenRepository):
         return self._to_entity(access_token) if access_token else None
 
     async def save(self, access_token: AccessToken):
-        self.session.add(self._to_model(access_token))
+        await self.session.merge(self._to_model(access_token))
         await self.session.flush()
 
     async def blacklist_all_for_user(self, user_id: UUID):
