@@ -18,14 +18,6 @@ from app.shared.infrastructure.database import UnitOfWork, get_uow
 profiles = APIRouter(prefix="/profiles", tags=["profiles"])
 
 
-async def get_profile_by_user_id(uow: UnitOfWork = Depends(get_uow)):
-    return GetUserProfileByUserIdUseCase(ProfilesRepository(uow.session))
-
-
-async def update_profile_dependency(uow: UnitOfWork = Depends(get_uow)):
-    return UpdateUserProfileUseCase(ProfilesRepository(uow.session))
-
-
 @profiles.get("/{user_id}", response_model=ProfileResponse)
 async def get_profile(user_id: UUID, uow: UnitOfWork = Depends(get_uow)):
     response = await GetUserProfileByUserIdUseCase(
