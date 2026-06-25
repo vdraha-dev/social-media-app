@@ -11,7 +11,7 @@ class Email(BaseValueObject):
     def _validate(self) -> None:
         pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
         if not re.match(pattern, self.value):
-            raise ValueError(f"Unvalid email address: {self.value!r}")
+            raise ValueError(f"Invalid email address: {self.value!r}")
 
     def __str__(self) -> str:
         return self.value

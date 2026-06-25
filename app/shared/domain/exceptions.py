@@ -30,7 +30,7 @@ class PermissionDeniedError(DomainError):
     """
 
     def __init__(self, action: str, reason: str = ""):
-        msg = f"Acess denied for {action}"
+        msg = f"Access denied for {action}"
         if reason:
             msg += f": {reason}"
         super().__init__(msg)
