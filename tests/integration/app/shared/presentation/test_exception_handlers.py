@@ -93,7 +93,7 @@ class TestPermissionDeniedHandler:
         response = client.get("/test/permission-denied")
         assert (
             response.json()["detail"]
-            == "Acess denied for access resource: Access denied"
+            == "Access denied for access resource: Access denied"
         )
 
     def test_returns_permission_denied_code(self, client: TestClient):
