@@ -24,6 +24,8 @@ class SocialLink(BaseValueObject):
     def __str__(self):
         return str(self.url)
 
+    def _validate(self): ...
+
     def to_dict(self) -> dict[str, str]:
         return {
             "platform": self.platform,
