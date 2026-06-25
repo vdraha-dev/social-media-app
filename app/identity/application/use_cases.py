@@ -112,7 +112,7 @@ class AuthenticateUserByTokenUseCase:
 
     async def execute(self, token_str: str) -> UUID:
         token = await self.token_repo.get_by_token(token_str)
-        if not token or token.blacklisted:
+        if not token or token.blacklisted or not token.is_valid:
             raise InvalidCredentialsError("Token is blacklisted")
 
         payload = self.token_service.decode(token_str)
