@@ -40,8 +40,6 @@ class UpdateUserProfileUseCase:
         if not profile:
             raise UserProfileNotFound("User profile not found for user")
 
-        updated_at = profile.updated_at
-
         if user_profile.display_name:
             profile.set_displayed_name(DisplayedName(user_profile.display_name))
 
@@ -51,8 +49,7 @@ class UpdateUserProfileUseCase:
         if user_profile.avatar_url:
             profile.set_avatar_url(Url(user_profile.avatar_url))
 
-        if updated_at != profile.updated_at:
-            await self.profile_repo.save(profile)
+        await self.profile_repo.save(profile)
 
         return ProfileResponse(
             user_id=profile.user_id,
